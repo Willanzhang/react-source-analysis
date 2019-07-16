@@ -1512,7 +1512,7 @@ function computeExpirationForFiber(currentTime: ExpirationTime, fiber: Fiber) {
     // No explicit expiration context was set, and we're not currently
     // performing work. Calculate a new expiration time.
     if (fiber.mode & ConcurrentMode) {
-      if (isBatchingInteractiveUpdates) {
+      if (isBatchingInteractiveUpdates) { // 通过这个属性判断 是调用哪种 expirationTime  事件绑定的时候 isBatchingInteractiveUpdates 是 true
         // This is an interactive update
         expirationTime = computeInteractiveExpiration(currentTime);
       } else {
@@ -1940,7 +1940,7 @@ function requestCurrentTime() {
   // if we know for certain that we're not in the middle of an event.
 
   if (isRendering) {
-    // We're already rendering. Return the most recently read time.
+    // We're already rendering. Return the most recently read time. 暂时就当做是js加载完成和现在时间的差
     return currentSchedulerTime;
   }
   // Check if there's pending work. 从调度队列中找到权限最高的root
