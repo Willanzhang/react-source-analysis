@@ -1968,14 +1968,14 @@ function requestCurrentTime() {
 // requestWork is called by the scheduler whenever a root receives an update.
 // It's up to the renderer to call renderRoot at some point in the future.
 function requestWork(root: FiberRoot, expirationTime: ExpirationTime) {
-  addRootToSchedule(root, expirationTime);
+  addRootToSchedule(root, expirationTime); // expirationTime 记录任务过期时间
   if (isRendering) {
     // Prevent reentrancy. Remaining work will be scheduled at the end of
     // the currently rendering batch.
     return;
   }
 
-  if (isBatchingUpdates) {
+  if (isBatchingUpdates) { // 批量处理的部分
     // Flush work at the end of the batch.
     if (isUnbatchingUpdates) {
       // ...unless we're inside unbatchedUpdates, in which case we should
@@ -1989,9 +1989,9 @@ function requestWork(root: FiberRoot, expirationTime: ExpirationTime) {
 
   // TODO: Get rid of Sync and use current time?
   if (expirationTime === Sync) {
-    performSyncWork();
+    performSyncWork(); // 同步调用 javascript代码， 一直执行完
   } else {
-    scheduleCallbackWithExpirationTime(root, expirationTime);
+    scheduleCallbackWithExpirationTime(root, expirationTime); // 进入异步调度 使用requestidlecallback等
   }
 }
 
@@ -2000,23 +2000,26 @@ function addRootToSchedule(root: FiberRoot, expirationTime: ExpirationTime) {
   // Check if this root is already part of the schedule.
   if (root.nextScheduledRoot === null) {
     // This root is not already scheduled. Add it.
-    root.expirationTime = expirationTime;
-    if (lastScheduledRoot === null) {
+		root.expirationTime = expirationTime;
+		
+		// firstScheduledRoot lastScheduledRoot 等形成一个单向链表结构， 用来存取 react 应用中所有root（假如多个root的话）的调度的关系
+    if (lastScheduledRoot === null) { // 是否有任务在进行调度
       firstScheduledRoot = lastScheduledRoot = root;
       root.nextScheduledRoot = root;
     } else {
+			// 有的话把当前root 插入到调度的最后  就是一个单向链表的插入
       lastScheduledRoot.nextScheduledRoot = root;
       lastScheduledRoot = root;
       lastScheduledRoot.nextScheduledRoot = firstScheduledRoot;
     }
   } else {
     // This root is already scheduled, but its priority may have increased.
-    const remainingExpirationTime = root.expirationTime;
+    const remainingExpirationTime = root.expirationTime; // 目前的expirationTime
     if (
       remainingExpirationTime === NoWork ||
       expirationTime < remainingExpirationTime
-    ) {
-      // Update the priority.
+    ) { // 如果 新的优先级 高于 目前的优先级
+      // Update the priority. priorit优先级 更新优先级  
       root.expirationTime = expirationTime;
     }
   }
