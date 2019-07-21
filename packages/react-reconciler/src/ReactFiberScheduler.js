@@ -2027,7 +2027,7 @@ function addRootToSchedule(root: FiberRoot, expirationTime: ExpirationTime) {
   }
 }
 
-function findHighestPriorityRoot() {
+function findHighestPriorityRoot() { // 寻找任务优先级最高的root节点，以及对应的expiration
   let highestPriorityWork = NoWork;
   let highestPriorityRoot = null;
   if (lastScheduledRoot !== null) {
@@ -2097,6 +2097,7 @@ function findHighestPriorityRoot() {
 
 function performAsyncWork(dl) {
   if (dl.didTimeout) {
+    // 过期任务要立马执行
     // The callback timed out. That means at least one update has expired.
     // Iterate through the root schedule. If they contain expired work, set
     // the next render expiration time to the current time. This has the effect
@@ -2127,6 +2128,7 @@ function performWork(minExpirationTime: ExpirationTime, dl: Deadline | null) {
   findHighestPriorityRoot();
 
   if (deadline !== null) {
+    // 异步的执行
     recomputeCurrentRendererTime();
     currentSchedulerTime = currentRendererTime;
 
@@ -2141,7 +2143,10 @@ function performWork(minExpirationTime: ExpirationTime, dl: Deadline | null) {
       nextFlushedExpirationTime !== NoWork &&
       (minExpirationTime === NoWork ||
         minExpirationTime >= nextFlushedExpirationTime) &&
+      // performAsyncWork 来说 它的minExpirationTime > 1
       (!deadlineDidExpire || currentRendererTime >= nextFlushedExpirationTime)
+      // !deadlineDidExpire 代表时间片还有时间，
+      // currentRendererTime >= nextFlushedExpirationTime 代表即将要执行的任务已经过期了 要马上执行
     ) {
       performWorkOnRoot(
         nextFlushedRoot,
@@ -2153,12 +2158,16 @@ function performWork(minExpirationTime: ExpirationTime, dl: Deadline | null) {
       currentSchedulerTime = currentRendererTime;
     }
   } else {
+    // 同步的情况 调用performSyncWork的时候
     while (
       nextFlushedRoot !== null &&
       nextFlushedExpirationTime !== NoWork &&
       (minExpirationTime === NoWork ||
         minExpirationTime >= nextFlushedExpirationTime)
-    ) {
+    ) { 
+      // performSyncWork 来说 它的minExpirationTime = 1 
+      // 也即是说nextFlushedExpirationTime=1 才会执行 sync=1 是sync才会执行
+      // 只会执行有同步任务的 root的更新
       performWorkOnRoot(nextFlushedRoot, nextFlushedExpirationTime, true);
       findHighestPriorityRoot();
     }
@@ -2252,7 +2261,9 @@ function performWorkOnRoot(
     // requiring the root to complete (by triggering placeholders).
 
     let finishedWork = root.finishedWork;
+    // 判断是否是有完成了的任务
     if (finishedWork !== null) {
+      // 完成了要及时commit
       // This root is already complete. We can commit it.
       completeRoot(root, finishedWork, expirationTime);
     } else {
@@ -2265,7 +2276,7 @@ function performWorkOnRoot(
         // $FlowFixMe Complains noTimeout is not a TimeoutID, despite the check above
         cancelTimeout(timeoutHandle);
       }
-      const isYieldy = false;
+      const isYieldy = false; // 是否可以中断，  但这里的任务要么是sync任务要么已经过期 是不可以中断的
       renderRoot(root, isYieldy, isExpired);
       finishedWork = root.finishedWork;
       if (finishedWork !== null) {
@@ -2274,6 +2285,7 @@ function performWorkOnRoot(
       }
     }
   } else {
+    // 异步任务
     // Flush async work.
     let finishedWork = root.finishedWork;
     if (finishedWork !== null) {
@@ -2289,6 +2301,7 @@ function performWorkOnRoot(
         // $FlowFixMe Complains noTimeout is not a TimeoutID, despite the check above
         cancelTimeout(timeoutHandle);
       }
+      // 异步任务是可以中断的
       const isYieldy = true;
       renderRoot(root, isYieldy, isExpired);
       finishedWork = root.finishedWork;
@@ -2296,9 +2309,11 @@ function performWorkOnRoot(
         // We've completed the root. Check the deadline one more time
         // before committing.
         if (!shouldYield()) {
+          // 如果时间片还有时间 记录一下
           // Still time left. Commit the root.
           completeRoot(root, finishedWork, expirationTime);
         } else {
+          // 没有时间剩余
           // There's no time left. Mark this root as complete. We'll come
           // back and commit it later.
           root.finishedWork = finishedWork;
@@ -2351,7 +2366,7 @@ function completeRoot(
 
 // When working on async work, the reconciler asks the renderer if it should
 // yield execution. For DOM, we implement this with requestIdleCallback.
-function shouldYield() { // 判断这一帧是否还有时间deadline.timeRemaining() 表示剩余的时间
+function shouldYield() { // 判断这一帧是否还有时间 deadline.timeRemaining() 表示剩余的时间
   if (deadlineDidExpire) {
     return true;
   }
