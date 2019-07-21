@@ -1075,12 +1075,12 @@ function performUnitOfWork(workInProgress: Fiber): Fiber | null {
     );
   }
 
-  let next;
+  let next; // 设置next变量
   if (enableProfilerTimer) {
     if (workInProgress.mode & ProfileMode) {
       startProfilerTimer(workInProgress);
     }
-
+    // beginWork 涉及了对每一个节点的更新 执行完之后返回它的子节点
     next = beginWork(current, workInProgress, nextRenderExpirationTime);
     workInProgress.memoizedProps = workInProgress.pendingProps;
 
@@ -1108,6 +1108,7 @@ function performUnitOfWork(workInProgress: Fiber): Fiber | null {
   }
 
   if (next === null) {
+    // next === null 说明已经更新到一棵子树的叶子节点了，  说明这棵子树可以结束了
     // If this doesn't spawn new work, complete the current work.
     next = completeUnitOfWork(workInProgress);
   }
@@ -1118,13 +1119,16 @@ function performUnitOfWork(workInProgress: Fiber): Fiber | null {
 }
 
 function workLoop(isYieldy) {
-  if (!isYieldy) {
+  // isYieldy：是否可以被中断  sync 和 已经超时的任务是不可以中断的
+  if (!isYieldy) { // 不可以中断
     // Flush work without yielding
     while (nextUnitOfWork !== null) {
+      // performUnitOfWork 继续对单元进行更新  第一个nextUnitOfWork 是 FiberRoot 进行深度优先遍历
       nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
     }
   } else {
     // Flush asynchronous work until the deadline runs out of time.
+    // 判断当前时间片是否还有足够的时间
     while (nextUnitOfWork !== null && !shouldYield()) {
       nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
     }
@@ -1153,6 +1157,7 @@ function renderRoot(
     root !== nextRoot ||
     nextUnitOfWork === null
   ) {
+    // 接受到root 和 和即将要执行的root一样 可能是之前的异步任务 被新的高优先级任务打断
     // Reset the stack and start working from the root.
     resetStack();
     nextRoot = root;
@@ -1162,6 +1167,8 @@ function renderRoot(
       null,
       nextRenderExpirationTime,
     );
+    // 拷贝一份到 WorkInProgress对象上 会和current 来回互相替换
+    // 在renderRoot之后 真正进行的节点操作都是在WorkInProgress上
     root.pendingCommitExpirationTime = NoWork;
 
     if (enableSchedulerTracing) {
@@ -1304,7 +1311,7 @@ function renderRoot(
     return;
   }
 
-  if (nextUnitOfWork !== null) {
+  if (nextUnitOfWork !== null) { // 正常流程走完nextUnitOfWork是等于null的 
     // There's still remaining async work in this tree, but we ran out of time
     // in the current frame. Yield back to the renderer. Unless we're
     // interrupted by a higher priority update, we'll continue later from where
