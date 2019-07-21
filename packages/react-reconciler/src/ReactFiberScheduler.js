@@ -2351,7 +2351,7 @@ function completeRoot(
 
 // When working on async work, the reconciler asks the renderer if it should
 // yield execution. For DOM, we implement this with requestIdleCallback.
-function shouldYield() {
+function shouldYield() { // 判断这一帧是否还有时间deadline.timeRemaining() 表示剩余的时间
   if (deadlineDidExpire) {
     return true;
   }

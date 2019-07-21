@@ -73,7 +73,7 @@ if (hasNativePerformanceNow) {
 }
 
 var deadlineObject = {
-  timeRemaining,
+  timeRemaining, // 返回剩余时间 判断这一帧的时间是否超过
   didTimeout: false,
 };
 
@@ -100,7 +100,7 @@ function flushFirstCallback() {
   // Remove the node from the list before calling the callback. That way the
   // list is in a consistent state even if the callback throws.
   var next = firstCallbackNode.next;
-  if (firstCallbackNode === next) {
+  if (firstCallbackNode === next) { // 只有一个节点的时候
     // This is the last callback in the list.
     firstCallbackNode = null;
     next = null;
@@ -109,7 +109,7 @@ function flushFirstCallback() {
     firstCallbackNode = lastCallbackNode.next = next;
     next.previous = lastCallbackNode;
   }
-
+  // 把兑现给的指针释放 避免后面无法释放，造成内存溢出
   flushedNode.next = flushedNode.previous = null;
 
   // Now it's safe to call the callback.
@@ -122,7 +122,7 @@ function flushFirstCallback() {
   currentExpirationTime = expirationTime;
   var continuationCallback;
   try {
-    continuationCallback = callback(deadlineObject);
+    continuationCallback = callback(deadlineObject); // callback 是performAsyncWork  函数是performAsyncWork没有任何返回
   } finally {
     currentPriorityLevel = previousPriorityLevel;
     currentExpirationTime = previousExpirationTime;
@@ -207,7 +207,9 @@ function flushImmediateWork() {
 }
 
 function flushWork(didTimeout) {
+  // didTimeout 是 firstCallbackNode 的expirationTime 是否已经超时了
   isExecutingCallback = true;
+  // deadlineObject中有是否超时，当前帧剩余时间的属性
   deadlineObject.didTimeout = didTimeout;
   try {
     if (didTimeout) {
@@ -218,8 +220,9 @@ function flushWork(didTimeout) {
         // This optimizes for as few performance.now calls as possible.
         var currentTime = getCurrentTime();
         if (firstCallbackNode.expirationTime <= currentTime) {
+          // do while 将所有过期的任务强制输出， 按照链表顺序
           do {
-            flushFirstCallback();
+            flushFirstCallback(); // 真正调用callback方法
           } while (
             firstCallbackNode !== null &&
             firstCallbackNode.expirationTime <= currentTime
@@ -229,6 +232,7 @@ function flushWork(didTimeout) {
         break;
       }
     } else {
+      // 加入没有任务是过期的话
       // Keep flushing callbacks until we run out of time in the frame.
       if (firstCallbackNode !== null) {
         do {
@@ -236,12 +240,13 @@ function flushWork(didTimeout) {
         } while (
           firstCallbackNode !== null &&
           getFrameDeadline() - getCurrentTime() > 0
-        );
+        ); // 当前帧时间有空的情况下会执行 callback(flushFirstCallback)
       }
     }
   } finally {
     isExecutingCallback = false;
     if (firstCallbackNode !== null) {
+      // 如果 回调链表还有剩余， 继续进入调度循环，
       // There's still work remaining. Request another callback.
       ensureHostCallbackIsScheduled();
     } else {
@@ -609,7 +614,7 @@ if (typeof window !== 'undefined' && window._schedMock) {
       // 调用 prevScheduledCallback   
       isFlushingHostCallback = true;
       try {
-        // 通过didTimeout判断是否要强制输出
+        // 通过didTimeout判断是否要强制输出  这里的prevScheduledCallback 就是flushWork
         prevScheduledCallback(didTimeout);
       } finally {
         isFlushingHostCallback = false;
