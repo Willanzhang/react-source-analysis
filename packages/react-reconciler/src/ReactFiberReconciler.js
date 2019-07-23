@@ -106,7 +106,7 @@ function getContextForSubtree(
   return parentContext;
 }
 
-function scheduleRootUpdate(
+function scheduleRootUpdate( // 调度root进行更新
   current: Fiber,
   element: ReactNodeList,
   expirationTime: ExpirationTime,
