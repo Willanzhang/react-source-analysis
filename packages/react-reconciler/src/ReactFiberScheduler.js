@@ -1625,8 +1625,8 @@ function retrySuspendedRoot(
     requestWork(root, rootExpirationTime);
   }
 }
-
-function scheduleWorkToRoot(fiber: Fiber, expirationTime): FiberRoot | null { // 根据传入的Fiber 节点向上找到对应的 RootFiber对象 并向上更新 childExpirationTime
+// 根据传入的Fiber 节点向上找到对应的 RootFiber对象 并向上更新 childExpirationTime  和 expirtaionTime
+function scheduleWorkToRoot(fiber: Fiber, expirationTime): FiberRoot | null {
   recordScheduleUpdate();  // 记录更新流程时间 
 
   if (__DEV__) {
@@ -1643,11 +1643,11 @@ function scheduleWorkToRoot(fiber: Fiber, expirationTime): FiberRoot | null { //
   ) {
     fiber.expirationTime = expirationTime;  // 表示之前产生更新的优先级低于现在更新的优先级   那此时这个fiber 会设置成 优先级更高的 expirationTime 
   }
-  let alternate = fiber.alternate; // alternate 看下fiber的数据结构 下面这一块是设置alternate 的expirationTime
+  let alternate = fiber.alternate; // alternate 看下fiber的数据结构 下面这一块是设置alternate(workInProgress) 的expirationTime
   if (
     alternate !== null &&
     (alternate.expirationTime === NoWork ||
-      alternate.expirationTime > expirationTime)
+      alternate.expirationTime > expirationTime) // 当前没有执行 或者 过期时间  比较大   进行替换 等于是修改成先要执行的expirationTime
   ) {
     alternate.expirationTime = expirationTime;
   }
@@ -1731,7 +1731,7 @@ function scheduleWorkToRoot(fiber: Fiber, expirationTime): FiberRoot | null { //
 }
 
 function scheduleWork(fiber: Fiber, expirationTime: ExpirationTime) {
-  const root = scheduleWorkToRoot(fiber, expirationTime);
+  const root = scheduleWorkToRoot(fiber, expirationTime); // 返回一个更新了expirationIme和childExpirationTime的root
   if (root === null) {
     return;
   }
@@ -1750,9 +1750,9 @@ function scheduleWork(fiber: Fiber, expirationTime: ExpirationTime) {
     // If we're in the render phase, we don't need to schedule this root
     // for an update, because we'll do it before we exit...
     !isWorking || // 没有正在工作   isWorking 包含 了render 和 isCommiting两个阶段
-    isCommitting || // 正在提交   isCommitting阶段是不可以打断的  把fiber树整体渲染要讲它渲染到dom上的阶段就是isCommitting
+    isCommitting || // 正在提交   isCommitting阶段是不可以打断的  把fiber树整体渲染要将它渲染到dom上的阶段就是isCommitting
     // ...unless this is a different root than the one we're rendering.
-    nextRoot !== root // nextRoot 代表上一次任务重就要更新的root
+    nextRoot !== root // nextRoot 代表上一次任务重新要更新的root
   ) {
     const rootExpirationTime = root.expirationTime;
     requestWork(root, rootExpirationTime); // 请求工作
