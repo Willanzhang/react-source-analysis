@@ -353,7 +353,7 @@ ReactRoot.prototype.render = function( // root.render 进行渲染更新
   if (callback !== null) {
     work.then(callback);
   }
-  // 需要进 ReactFiberReconciler 中 
+  // 需要进 ReactFiberReconciler 中
   DOMRenderer.updateContainer(children, root, null, work._onCommit);
   return work;
 };

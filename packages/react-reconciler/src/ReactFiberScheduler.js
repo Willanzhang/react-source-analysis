@@ -1502,9 +1502,10 @@ function computeUniqueAsyncExpiration(): ExpirationTime {
   return lastUniqueAsyncExpiration;
 }
 
-function computeExpirationForFiber(currentTime: ExpirationTime, fiber: Fiber) {
+function computeExpirationForFiber(currentTime: ExpirationTime, fiber: Fiber) { // 计算fiber的expirationTime
   let expirationTime;
   if (expirationContext !== NoWork) {
+    // explicit：明确
     // An explicit expiration context was set;
     expirationTime = expirationContext;
   } else if (isWorking) {

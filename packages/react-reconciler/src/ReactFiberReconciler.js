@@ -145,7 +145,7 @@ function scheduleRootUpdate( // 调度root进行更新
     );
     update.callback = callback;
   }
-  enqueueUpdate(current, update); // 将uodate加入enqueueUpdate队列中
+  enqueueUpdate(current, update); // 将update加入updateQueue队列中
 
   scheduleWork(current, expirationTime); // 开始进行任务调度 因为有任务优先级的概念 同一时间有不同的优先级的任务需要执行因此需要调度1
   return expirationTime;
@@ -281,7 +281,7 @@ export function updateContainer(
   const current = container.current;
   const currentTime = requestCurrentTime();
   const expirationTime = computeExpirationForFiber(currentTime, current); // 非常重要的一点， 和有ConcurentMode有很大的关联
-  return updateContainerAtExpirationTime( // 根据expirationTime 创建 更新
+  return updateContainerAtExpirationTime( // 根据expirationTime 创建更新
     element,
     container,
     parentComponent,
