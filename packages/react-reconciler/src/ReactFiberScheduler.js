@@ -1989,7 +1989,7 @@ function requestWork(root: FiberRoot, expirationTime: ExpirationTime) {
     // Flush work at the end of the batch.
     if (isUnbatchingUpdates) {
       // ...unless we're inside unbatchedUpdates, in which case we should
-      // flush it now.
+      // flush it now.  nextFlushedRoot 表示下个要进行渲染的root 和 nextFlushedRoot 它的过期时间
       nextFlushedRoot = root;
       nextFlushedExpirationTime = Sync;
       performWorkOnRoot(root, Sync, true);
@@ -2004,20 +2004,21 @@ function requestWork(root: FiberRoot, expirationTime: ExpirationTime) {
     scheduleCallbackWithExpirationTime(root, expirationTime); // 进入异步调度 使用requestidlecallback等
   }
 }
-
+// 将新的root加入要调度的 scheduledRot的 单向循环链表中
 function addRootToSchedule(root: FiberRoot, expirationTime: ExpirationTime) {
   // Add the root to the schedule.
-  // Check if this root is already part of the schedule.
+  // Check if this root is already part of the schedule. 检查当前root是否已经在 调度中
+  // nextScheduledRoot: FiberRoot 是用于关联root 链表的
   if (root.nextScheduledRoot === null) {
     // This root is not already scheduled. Add it.
 		root.expirationTime = expirationTime;
 		
-		// firstScheduledRoot lastScheduledRoot 等形成一个单向链表结构， 用来存取 react 应用中所有root（假如多个root的话）的调度的关系
+		// firstScheduledRoot lastScheduledRoot 等形成一个单向循环链表结构， 用来存取 react 应用中所有root:FiberRoot（假如多个root的话）的调度的关系
     if (lastScheduledRoot === null) { // 是否有任务在进行调度
       firstScheduledRoot = lastScheduledRoot = root;
       root.nextScheduledRoot = root;
     } else {
-			// 有的话把当前root 插入到调度的最后  就是一个单向链表的插入
+			// 有的话把当前root 插入到调度的最后  就是一个单向循环链表的插入
       lastScheduledRoot.nextScheduledRoot = root;
       lastScheduledRoot = root;
       lastScheduledRoot.nextScheduledRoot = firstScheduledRoot;
