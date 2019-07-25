@@ -1868,7 +1868,7 @@ function scheduleCallbackWithExpirationTime(
   callbackExpirationTime = expirationTime;
   const currentMs = now() - originalStartTimeMs; // originalStartTimeMs react加载开始执行的时间
   const expirationTimeMs = expirationTimeToMs(expirationTime);
-  const timeout = expirationTimeMs - currentMs; // 多少时间过期
+  const timeout = expirationTimeMs - currentMs; // 还剩多少时间将要过期
   callbackID = scheduleDeferredCallback(performAsyncWork, {timeout}); // 添加异步调度执行
 }
 
@@ -1989,7 +1989,7 @@ function requestWork(root: FiberRoot, expirationTime: ExpirationTime) {
     // Flush work at the end of the batch.
     if (isUnbatchingUpdates) {
       // ...unless we're inside unbatchedUpdates, in which case we should
-      // flush it now.  nextFlushedRoot 表示下个要进行渲染的root 和 nextFlushedRoot 它的过期时间
+      // flush it now.  nextFlushedRoot 表示下个要进行渲染的root 和 nextFlushedExpirationTime 它的过期时间
       nextFlushedRoot = root;
       nextFlushedExpirationTime = Sync;
       performWorkOnRoot(root, Sync, true);

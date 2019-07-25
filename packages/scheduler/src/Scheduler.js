@@ -206,8 +206,9 @@ function flushImmediateWork() {
   }
 }
 
+// 通过didTimeout 和 当前帧是否有时间  判断 callbackNode 链表是否立马执行
 function flushWork(didTimeout) {
-  // didTimeout 是 firstCallbackNode 的expirationTime 是否已经超时了
+  // didTimeout 是 firstCallbackNode的expirationTime 是否已经超时了
   isExecutingCallback = true;
   // deadlineObject中有是否超时，当前帧剩余时间的属性
   deadlineObject.didTimeout = didTimeout;
@@ -232,7 +233,7 @@ function flushWork(didTimeout) {
         break;
       }
     } else {
-      // 加入没有任务是过期的话
+      // 假如没有任务是过期的话
       // Keep flushing callbacks until we run out of time in the frame.
       if (firstCallbackNode !== null) {
         do {
@@ -240,7 +241,7 @@ function flushWork(didTimeout) {
         } while (
           firstCallbackNode !== null &&
           getFrameDeadline() - getCurrentTime() > 0
-        ); // 当前帧时间有空的情况下会执行 callback(flushFirstCallback)
+        ); // !!当前帧时间有空的情况下会执行 callback(flushFirstCallback)
       }
     }
   } finally {
@@ -303,6 +304,7 @@ function unstable_wrapCallback(callback) {
   };
 }
 
+// 传入了 ferformAsyncWork， {timeOut}
 function unstable_scheduleCallback(callback, deprecated_options) { // 生成和维护callbackNode的循环链表
   var startTime =
     currentEventStartTime !== -1 ? currentEventStartTime : getCurrentTime();
@@ -368,7 +370,7 @@ function unstable_scheduleCallback(callback, deprecated_options) { // 生成和�
     } else if (next === firstCallbackNode) {
       // The new callback has the earliest expiration in the entire list.
       firstCallbackNode = newNode;
-      // ensureHostCallbackIsScheduled 重新进入循环调用list中的callback 头部或者链表变了要取消原先 的开始一个新的循环
+      // ensureHostCallbackIsScheduled 重新进入循环调用list中的callback  当头部或者链表变了要取消原先 的开始一个新的循环
       ensureHostCallbackIsScheduled();
     }
     // 下面一顿操作 就是为了形成循环链表
@@ -458,7 +460,7 @@ var requestAnimationFrameWithTimeout = function(callback) {
     localClearTimeout(rAFTimeoutID); // 取消localSetTimeout
     callback(timestamp);
   });
-  // localRequestAnimationFrame 和  localSetTimeout中有相互取消的操作 是个竞争关系， 谁先触发谁先调用
+  // localRequestAnimationFrame 和 localSetTimeout中有相互取消的操作 是个竞争关系， 谁先触发谁先调用
   rAFTimeoutID = localSetTimeout(function() {
     // cancel the requestAnimationFrame
     localCancelAnimationFrame(rAFID);
@@ -579,7 +581,7 @@ if (typeof window !== 'undefined' && window._schedMock) {
     }
 
     isMessageEventScheduled = false;
-
+    //  这里的scheduledHostCallback是flushWork
     var prevScheduledCallback = scheduledHostCallback;
     var prevTimeoutTime = timeoutTime;
     scheduledHostCallback = null;
@@ -676,7 +678,8 @@ if (typeof window !== 'undefined' && window._schedMock) {
     }
   };
 
-  requestHostCallback = function(callback, absoluteTimeout) { // 浏览器使用
+  requestHostCallback = function(callback, absoluteTimeout) { // 浏览器使用 callback = flushWork
+    // scheduledHostCallback 是 flushWork
     scheduledHostCallback = callback;
     timeoutTime = absoluteTimeout;
     if (isFlushingHostCallback || absoluteTimeout < 0) { // 无需等待 马上调用
