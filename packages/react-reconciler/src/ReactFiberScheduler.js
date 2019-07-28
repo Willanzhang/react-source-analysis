@@ -1959,6 +1959,7 @@ function requestCurrentTime() {
   if (
     nextFlushedExpirationTime === NoWork ||
     nextFlushedExpirationTime === Never
+    // nextFlushedExpirationTime === Never 表示产生更新的组件是个永远不会展示的组件
   ) {
     // If there's no pending work, or if the pending work is offscreen, we can
     // read the current time without risk of tearing.
