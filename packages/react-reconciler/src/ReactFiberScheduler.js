@@ -1080,8 +1080,9 @@ function performUnitOfWork(workInProgress: Fiber): Fiber | null {
     if (workInProgress.mode & ProfileMode) {
       startProfilerTimer(workInProgress);
     }
-    // beginWork 涉及了对每一个节点的更新 执行完之后返回它的子节点
+    // beginWork 涉及了对每一个节点的更新! 执行完之后返回它的子节点
     next = beginWork(current, workInProgress, nextRenderExpirationTime);
+    // memoizedProps 上一次渲染完成之后的props 等于正在用的props
     workInProgress.memoizedProps = workInProgress.pendingProps;
 
     if (workInProgress.mode & ProfileMode) {
@@ -1110,6 +1111,7 @@ function performUnitOfWork(workInProgress: Fiber): Fiber | null {
   if (next === null) {
     // next === null 说明已经更新到一棵子树的叶子节点了，  说明这棵子树可以结束了
     // If this doesn't spawn new work, complete the current work.
+    // completeUnitOfWork 向上遍历找到第一个兄弟节点（一直到最上面rootfiber的兄弟节点吗？）
     next = completeUnitOfWork(workInProgress);
   }
 
@@ -1122,7 +1124,7 @@ function workLoop(isYieldy) {
   // isYieldy：是否可以被中断  sync 和 已经超时的任务是不可以中断的
   if (!isYieldy) { // 不可以中断
     // Flush work without yielding
-    while (nextUnitOfWork !== null) {
+    while (nextUnitOfWork !== null) { // nextUnitOfWork 是 FiberRoot节点时 它的return是null 这时候回跳出循环
       // performUnitOfWork 继续对单元进行更新  第一个nextUnitOfWork 是 FiberRoot 进行深度优先遍历
       nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
     }
@@ -1157,7 +1159,7 @@ function renderRoot(
     root !== nextRoot ||
     nextUnitOfWork === null
   ) {
-    // 接受到root 和 和即将要执行的root一样 可能是之前的异步任务 被新的高优先级任务打断
+    // 接受到root 和 和即将（之前）要执行的root一样 可能是之前的异步任务 被刚接受到的高优先级任务打断
     // Reset the stack and start working from the root.
     resetStack();
     nextRoot = root;
