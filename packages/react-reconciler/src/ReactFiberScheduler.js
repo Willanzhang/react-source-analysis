@@ -2040,12 +2040,13 @@ function addRootToSchedule(root: FiberRoot, expirationTime: ExpirationTime) {
 function findHighestPriorityRoot() { // 寻找任务优先级最高的root节点，以及对应的expiration
   let highestPriorityWork = NoWork;
   let highestPriorityRoot = null;
-  if (lastScheduledRoot !== null) {
+  if (lastScheduledRoot !== null) { // 存在有任务的root节点
     let previousScheduledRoot = lastScheduledRoot;
     let root = firstScheduledRoot;
-    while (root !== null) {
+    while (root !== null) { // 存在有任务要执行的root节点
       const remainingExpirationTime = root.expirationTime;
-      if (remainingExpirationTime === NoWork) {
+      if (remainingExpirationTime === NoWork) { 
+        // 此root不在要执行 从调度中移除 下面一系列操作就是为了将此root 从root的调度链表中移除
         // This root no longer has work. Remove it from the scheduler.
 
         // TODO: This check is redudant, but Flow is confused by the branch
@@ -2056,8 +2057,8 @@ function findHighestPriorityRoot() { // 寻找任务优先级最高的root节点
           'Should have a previous and last root. This error is likely ' +
             'caused by a bug in React. Please file an issue.',
         );
-        if (root === root.nextScheduledRoot) {
-          // This is the only root in the list.
+        if (root === root.nextScheduledRoot) { 
+          // This is the only root in the list. 当前root是唯一的一个root 清空
           root.nextScheduledRoot = null;
           firstScheduledRoot = lastScheduledRoot = null;
           break;
@@ -2263,7 +2264,7 @@ function performWorkOnRoot(
 
   isRendering = true;
 
-  // Check if this is async work or sync/expired work.
+  // Check if this is async work or sync/expired work. 检查是异步任务 或者是同步（过期）任务
   if (deadline === null || isExpired) {
     // Flush work without yielding.
     // TODO: Non-yieldy work does not necessarily imply expired work. A renderer
@@ -2280,6 +2281,8 @@ function performWorkOnRoot(
       root.finishedWork = null;
       // If this root previously suspended, clear its existing timeout, since
       // we're about to try rendering again.
+      // 假如这个任务以前挂起了 就清除存在的超时，然后重新渲染
+      // timeoutHandle 在任务被挂起的时候通过setTimeout设置的返回内容，用来下一次如果有新的任务挂起时清理还没触发的timeout
       const timeoutHandle = root.timeoutHandle;
       if (timeoutHandle !== noTimeout) {
         root.timeoutHandle = noTimeout;
