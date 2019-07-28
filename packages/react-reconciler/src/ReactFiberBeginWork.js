@@ -1468,12 +1468,14 @@ function bailoutOnAlreadyFinishedWork(
     stopProfilerTimerIfRunning(workInProgress);
   }
 
-  // Check if the children have any pending work.
+  // Check if the children have any pending work.  childExpirationTime是子代节点的expirationTime
   const childExpirationTime = workInProgress.childExpirationTime;
   if (
     childExpirationTime === NoWork ||
     childExpirationTime > renderExpirationTime
   ) {
+    // 这代表 子树上面也没有更新要完成 跳过了子树的更新渲染 是个很大的优化
+    // 有childExpirationTime 可以更早的跳过子树的判断 16.5之后才加上的
     // The children don't have any work either. We can skip them.
     // TODO: Once we add back resuming, we should check if the children are
     // a work-in-progress set. If so, we need to transfer their effects.
@@ -1492,19 +1494,23 @@ function beginWork(
   renderExpirationTime: ExpirationTime,
 ): Fiber | null {
   const updateExpirationTime = workInProgress.expirationTime;
-
-  if (current !== null) {
+  // 只有react第一次更新的时候current是 RootFiber 仅且只有此时RootFiber上才会有expirationTime 并且之后任何时候的更新都不是RootFiber上的 
+  // 后面的跟新所在等层级 做多也只能是到app 节点这一层
+  if (current !== null) { // 判断current !== null 也就是判断 节点是不是第一次渲染
+    // 第一次渲染的时候 current是null
     const oldProps = current.memoizedProps;
     const newProps = workInProgress.pendingProps;
     if (
       oldProps === newProps &&
-      !hasLegacyContextChanged() &&
-      (updateExpirationTime === NoWork ||
-        updateExpirationTime > renderExpirationTime)
+      !hasLegacyContextChanged() && // 老的context判断 一个很影响性能的api
+      (updateExpirationTime === NoWork || // 这个节点没有更新 
+        updateExpirationTime > renderExpirationTime) // 更新的优先级不高不在这次渲染执行
     ) {
+      // 这个fiber节点没有更新并且优先级不高 可以在本次渲染跳过
       // This fiber does not have any pending work. Bailout without entering
       // the begin phase. There's still some bookkeeping we that needs to be done
       // in this optimized path, mostly pushing stuff onto the stack.
+      // 下面和compontents相关
       switch (workInProgress.tag) {
         case HostRoot:
           pushHostRootContext(workInProgress);
@@ -1578,6 +1584,7 @@ function beginWork(
           break;
         }
       }
+      // 会跳过当前fiber节点以及子节点的更新 bailoutOnAlreadyFinishedWork
       return bailoutOnAlreadyFinishedWork(
         current,
         workInProgress,
@@ -1588,7 +1595,7 @@ function beginWork(
 
   // Before entering the begin phase, clear the expiration time.
   workInProgress.expirationTime = NoWork;
-
+  // 如果当前节点是有更新的 通过判断节点的类型 执行不同的方法进行组件的更新
   switch (workInProgress.tag) {
     case IndeterminateComponent: {
       const elementType = workInProgress.elementType;
@@ -1609,6 +1616,11 @@ function beginWork(
         renderExpirationTime,
       );
     }
+    // 什么是调和子节点  
+    // ReactDOM.render的时候我们只有一个fiber对象
+    // 这个fiber对象中有很多属性，比如说props child等 
+    // 它的child此时还是一个 ReactElement对象  还不是一个fiber对象那个 此时就需要创建一个fiber对象
+    // 如此一步步向下 要通过判断child类型使用不同方创建fiber  这就是调节子节点
     case FunctionComponent: {
       const Component = workInProgress.type;
       const unresolvedProps = workInProgress.pendingProps;
