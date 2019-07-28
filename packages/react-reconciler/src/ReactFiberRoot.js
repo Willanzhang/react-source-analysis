@@ -99,7 +99,7 @@ export type FiberRoot = {
   ...ProfilingOnlyFiberRootProperties,
 };
 
-export function createFiberRoot(
+export function createFiberRoot( // 创建FiberRoot的地方
   containerInfo: any,
   isConcurrent: boolean,
   hydrate: boolean,

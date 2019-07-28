@@ -183,7 +183,7 @@ export function applyDerivedStateFromProps(
 	}
 }
 
-const classComponentUpdater = {
+const classComponentUpdater = { // setState 和 forceUpdate
 	isMounted,
 	enqueueSetState(inst, payload, callback) {
 		const fiber = ReactInstanceMap.get(inst);

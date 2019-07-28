@@ -106,7 +106,7 @@ function getContextForSubtree(
   return parentContext;
 }
 
-function scheduleRootUpdate(
+function scheduleRootUpdate( // 调度root进行更新
   current: Fiber,
   element: ReactNodeList,
   expirationTime: ExpirationTime,
@@ -129,7 +129,7 @@ function scheduleRootUpdate(
       );
     }
   }
-
+  // 根据expirationTime 创建update
   const update = createUpdate(expirationTime);
   // Caution: React DevTools currently depends on this property
   // being called "element".
@@ -145,9 +145,9 @@ function scheduleRootUpdate(
     );
     update.callback = callback;
   }
-  enqueueUpdate(current, update);
+  enqueueUpdate(current, update); // 将update加入updateQueue队列中
 
-  scheduleWork(current, expirationTime); // 开始进行任务调度 因为有任务优先级的概念 同一时间有不同的优先级的任务需要执行因此需要调度
+  scheduleWork(current, expirationTime); // 开始进行任务调度 因为有任务优先级的概念 同一时间有不同的优先级的任务需要执行因此需要调度1
   return expirationTime;
 }
 
@@ -179,7 +179,7 @@ export function updateContainerAtExpirationTime(
   } else {
     container.pendingContext = context;
   }
-
+  // 调度 是root更新
   return scheduleRootUpdate(current, element, expirationTime, callback);
 }
 
@@ -281,7 +281,7 @@ export function updateContainer(
   const current = container.current;
   const currentTime = requestCurrentTime();
   const expirationTime = computeExpirationForFiber(currentTime, current); // 非常重要的一点， 和有ConcurentMode有很大的关联
-  return updateContainerAtExpirationTime(
+  return updateContainerAtExpirationTime( // 根据expirationTime 创建更新
     element,
     container,
     parentComponent,

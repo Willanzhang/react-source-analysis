@@ -337,10 +337,10 @@ function ReactRoot(
   hydrate: boolean,
 ) {
   // import * as DOMRenderer from 'react-reconciler/inline.dom';  reconciler 是react 非常重要的模块 用来 平台无关的节点的调和的操作和任务调度
-  const root = DOMRenderer.createContainer(container, isConcurrent, hydrate);
+  const root = DOMRenderer.createContainer(container, isConcurrent, hydrate); // createContainer就是创建一个FiberRoot(createFiberRoot) 对象
   this._internalRoot = root;
 }
-ReactRoot.prototype.render = function(
+ReactRoot.prototype.render = function( // root.render 进行渲染更新
   children: ReactNodeList,
   callback: ?() => mixed,
 ): Work {
@@ -353,6 +353,7 @@ ReactRoot.prototype.render = function(
   if (callback !== null) {
     work.then(callback);
   }
+  // 需要进 ReactFiberReconciler 中
   DOMRenderer.updateContainer(children, root, null, work._onCommit);
   return work;
 };
@@ -462,7 +463,7 @@ ReactGenericBatching.setBatchingImplementation(
 
 let warnedAboutHydrateAPI = false;
 
-function legacyCreateRootFromDOMContainer(
+function legacyCreateRootFromDOMContainer(// 创建一个ReactRoot(FiberRoot)
   container: DOMContainer,
   forceHydrate: boolean,
 ): Root {
@@ -507,7 +508,7 @@ function legacyCreateRootFromDOMContainer(
   return new ReactRoot(container, isConcurrent, shouldHydrate);  // 这里创建一个reactroot 
 }
 
-function legacyRenderSubtreeIntoContainer(
+function legacyRenderSubtreeIntoContainer( // ReactDOM.render 真正执行的操作在这个函数中
   parentComponent: ?React$Component<any, any>,
   children: ReactNodeList,
   container: DOMContainer,
@@ -528,7 +529,7 @@ function legacyRenderSubtreeIntoContainer(
   // member of intersection type." Whyyyyyy.
   let root: Root = (container._reactRootContainer: any);
   if (!root) {
-    // Initial mount
+    // Initial mount 初始挂载  第一次肯定是进这个分支的 这里其实就是创建 一个 FiberRoot
     root = container._reactRootContainer = legacyCreateRootFromDOMContainer(
       container,
       forceHydrate,
@@ -548,7 +549,7 @@ function legacyRenderSubtreeIntoContainer(
           children,
           callback,
         );
-      } else {
+      } else { //这里是进行更新
         root.render(children, callback);
       }
     });
@@ -640,7 +641,7 @@ const ReactDOM: Object = {
     element: React$Element<any>,
     container: DOMContainer,
     callback: ?Function,
-  ) {
+  ) { // ReactDOM.render()执行的就是这个
     return legacyRenderSubtreeIntoContainer(
       null,
       element,
