@@ -412,7 +412,7 @@ function updateFunctionComponent(
     nextChildren = Component(nextProps, context);
     ReactCurrentFiber.setCurrentPhase(null);
   } else {
-    nextChildren = Component(nextProps, context);
+    nextChildren = Component(nextProps, context); // Component()返回一个ReactElement节点
   }
 
   // React DevTools reads this flag.
@@ -423,6 +423,8 @@ function updateFunctionComponent(
     nextChildren,
     renderExpirationTime,
   );
+  // !reconcileChildren()将 ReactElement转换成fiber
+  // 执行之后会在workInProgress上挂载 chid 属性
   return workInProgress.child;
 }
 
@@ -1488,6 +1490,7 @@ function bailoutOnAlreadyFinishedWork(
   }
 }
 
+// 会返回子节点fiber或者null
 function beginWork(
   current: Fiber | null,
   workInProgress: Fiber,
@@ -1623,11 +1626,17 @@ function beginWork(
     // 如此一步步向下 要通过判断child类型使用不同方创建fiber  这就是调节子节点
     case FunctionComponent: {
       const Component = workInProgress.type;
+      // type 就是ReactElement里的 type属性  存储的就是组件
+      // 字符串 就是 div 等原生标签
+      // functionComponent 的话就是一个方法
+      // classComponent 的话就是一个类
       const unresolvedProps = workInProgress.pendingProps;
+      // pendingProps 就是新的一次渲染的时候产生的props 和 调和子节点有关
       const resolvedProps =
         workInProgress.elementType === Component
           ? unresolvedProps
           : resolveDefaultProps(Component, unresolvedProps);
+      // resolveDefaultProps 和 Suspense 组件lazy等有关系
       return updateFunctionComponent(
         current,
         workInProgress,
