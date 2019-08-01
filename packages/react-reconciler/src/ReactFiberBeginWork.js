@@ -131,14 +131,14 @@ export function reconcileChildren(
   nextChildren: any,
   renderExpirationTime: ExpirationTime,
 ) {
-  if (current === null) {
+  if (current === null) { // 第一次渲染 
     // If this is a fresh new component that hasn't been rendered yet, we
     // won't update its child set by applying minimal side-effects. Instead,
     // we will add them all to the child before it gets rendered. That means
     // we can optimize this reconciliation pass by not tracking side-effects.
     workInProgress.child = mountChildFibers(
       workInProgress,
-      null,
+      null, // 第一次渲染是不存在子节点
       nextChildren,
       renderExpirationTime,
     );
