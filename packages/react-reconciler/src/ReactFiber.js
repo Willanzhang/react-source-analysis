@@ -525,7 +525,7 @@ export function createFiberFromTypeAndProps(
   return fiber;
 }
 
-// 这里是根据不同过得type 产生相对类型的组件
+// 这里是根据不同的type 产生相对类型的组件
 export function createFiberFromElement(
   element: ReactElement,
   mode: TypeOfMode,

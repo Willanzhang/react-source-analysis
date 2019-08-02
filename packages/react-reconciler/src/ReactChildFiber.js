@@ -285,6 +285,7 @@ function ChildReconciler(shouldTrackSideEffects) {
     return null;
   }
 
+  // 返回一个 map 对象 键 是fiber 的 key 或者 index  值是fiber  方便以后找寻相同的key 
   function mapRemainingChildren(
     returnFiber: Fiber,
     currentFirstChild: Fiber,
@@ -299,6 +300,7 @@ function ChildReconciler(shouldTrackSideEffects) {
       if (existingChild.key !== null) {
         existingChildren.set(existingChild.key, existingChild);
       } else {
+        //  string   和 number 是不存在key的  所以用的索引
         existingChildren.set(existingChild.index, existingChild);
       }
       existingChild = existingChild.sibling;
@@ -319,6 +321,7 @@ function ChildReconciler(shouldTrackSideEffects) {
     return clone;
   }
 
+  // 确定fiber 以何种方式 放入dom中
   function placeChild(
     newFiber: Fiber,
     lastPlacedIndex: number,
@@ -334,6 +337,8 @@ function ChildReconciler(shouldTrackSideEffects) {
       const oldIndex = current.index;
       if (oldIndex < lastPlacedIndex) {
         // This is a move.
+        // 新老节点 的index 变化了 说明这个节点被移动了
+        // Placement 意思是这个节点要重新挂载到dom上面 按照莫一个顺序插入到一个节点后面
         newFiber.effectTag = Placement;
         return lastPlacedIndex;
       } else {
@@ -341,6 +346,7 @@ function ChildReconciler(shouldTrackSideEffects) {
         return oldIndex;
       }
     } else {
+      // 说明这个节点没有渲染过的 是新插入的节点
       // This is an insertion.
       newFiber.effectTag = Placement;
       return lastPlacedIndex;
@@ -613,6 +619,7 @@ function ChildReconciler(shouldTrackSideEffects) {
     return null;
   }
 
+  // 根据 map 更新 节点
   function updateFromMap(
     existingChildren: Map<string | number, Fiber>,
     returnFiber: Fiber,
@@ -623,6 +630,8 @@ function ChildReconciler(shouldTrackSideEffects) {
     if (typeof newChild === 'string' || typeof newChild === 'number') {
       // Text nodes don't have keys, so we neither have to check the old nor
       // new node for the key. If both are text nodes, they match.
+
+      // 假如是string 或 number 这种文字节点时没有key 的  所有要用index 检索
       const matchedFiber = existingChildren.get(newIdx) || null;
       return updateTextNode(
         returnFiber,
@@ -631,7 +640,6 @@ function ChildReconciler(shouldTrackSideEffects) {
         expirationTime,
       );
     }
-
     if (typeof newChild === 'object' && newChild !== null) {
       switch (newChild.$$typeof) {
         case REACT_ELEMENT_TYPE: {
@@ -737,6 +745,7 @@ function ChildReconciler(shouldTrackSideEffects) {
     return knownKeys;
   }
 
+  // 调和children是 Array 的 子节点
   function reconcileChildrenArray(
     returnFiber: Fiber,
     currentFirstChild: Fiber | null,
@@ -778,13 +787,19 @@ function ChildReconciler(shouldTrackSideEffects) {
     let lastPlacedIndex = 0;
     let newIdx = 0;
     let nextOldFiber = null;
+    // fiber.index 代表这个节点在 所有兄弟节点中的位置
+    // 这里是遍历新老数组，  遍历的过程是找到第一个不能复用的子节点
     for (; oldFiber !== null && newIdx < newChildren.length; newIdx++) {
       if (oldFiber.index > newIdx) {
+        // 如果位置不匹配 将这个节点作为下一个节点
         nextOldFiber = oldFiber;
         oldFiber = null;
       } else {
         nextOldFiber = oldFiber.sibling;
       }
+      // 对比新老的 key是否相同判断是否可以复用fiber节点
+      // 若 newFiber = null 代表是不能复用
+      // updateSlot 假如有key 相同多个就返回  复用的fiber 否则返回null
       const newFiber = updateSlot(
         returnFiber,
         oldFiber,
@@ -799,18 +814,26 @@ function ChildReconciler(shouldTrackSideEffects) {
         if (oldFiber === null) {
           oldFiber = nextOldFiber;
         }
+        // 到没有节点可以用复用的时候就会跳出 循环  oldFiber 就是那个不能复用的节点
         break;
       }
+      // shouldTrackSideEffects true 是初次渲染的情况下
       if (shouldTrackSideEffects) {
         if (oldFiber && newFiber.alternate === null) {
+          // newFiber.alternate === null 说明是没有复用oldFiber的节点， 而是直接ruturn 一个新的fiber
+          // 没有复用的情况说明 老的节点已经失效了(类型不同)， 我们需要删除它
           // We matched the slot, but we didn't reuse the existing fiber, so we
           // need to delete the existing child.
           deleteChild(returnFiber, oldFiber);
         }
       }
+      // placeChild 放置 child
       lastPlacedIndex = placeChild(newFiber, lastPlacedIndex, newIdx);
+
+      // 下面这个判断也是 建立fiber 链表
       if (previousNewFiber === null) {
         // TODO: Move out of the loop. This only happens for the first run.
+        // 如果是previousNewFiber 是null 说明这是第一个新节点，给它赋值
         resultingFirstChild = newFiber;
       } else {
         // TODO: Defer siblings if we're not at the right index for this slot.
@@ -822,17 +845,23 @@ function ChildReconciler(shouldTrackSideEffects) {
       previousNewFiber = newFiber;
       oldFiber = nextOldFiber;
     }
-
+    
+    // 如果是等于的说明新数组 已经全部被创建为fiber对象了
     if (newIdx === newChildren.length) {
       // We've reached the end of the new children. We can delete the rest.
+      // 如果已经变遍历完了， 剩下的就可以删掉了
       deleteRemainingChildren(returnFiber, oldFiber);
+      // 返回的是 resultingFirstChild 以为只有点一个 child  才是 returnFiber的child 节点  
+      // 想想fiber tree 的结构  后面的节点都是前一个的sibling 通过这样确定整颗 fiber 树
       return resultingFirstChild;
     }
 
     if (oldFiber === null) {
       // If we don't have any more existing children we can choose a fast path
       // since the rest will all be insertions.
+      // 假如老的节点 已经复用完了 但是新的节点还是有一部分没有创建
       for (; newIdx < newChildren.length; newIdx++) {
+        // 直接对剩下的节点进行创建就行了 无须关心是否要复用了
         const newFiber = createChild(
           returnFiber,
           newChildren[newIdx],
@@ -854,10 +883,14 @@ function ChildReconciler(shouldTrackSideEffects) {
     }
 
     // Add all children to a key map for quick lookups.
+    // 上面判断 可能还有遗漏的情况  就是  oldFiber 还有些兄弟节点  newFiber 还有些没用创建
+    // mapRemainingChildren 返回一个 map 对象 键 是fiber 的 key 或者 index  值是fiber  方便以后找寻相同的key 
     const existingChildren = mapRemainingChildren(returnFiber, oldFiber);
 
     // Keep scanning and use the map to restore deleted items as moves.
-    for (; newIdx < newChildren.length; newIdx++) {
+    // 唯一的一次完整遍历
+    for (; newIdx < newChildren.length; newIdx++) { 
+      // updateFromMap 根据map 根据类型 更新成对象节点
       const newFiber = updateFromMap(
         existingChildren,
         returnFiber,
@@ -868,6 +901,8 @@ function ChildReconciler(shouldTrackSideEffects) {
       if (newFiber) {
         if (shouldTrackSideEffects) {
           if (newFiber.alternate !== null) {
+            // 新的fiber 是 workInProgress  如果是有alternate 代表这个 newFibe 是复用了的 
+            // 我们就可以在这map中删除
             // The new fiber is a work in progress, but if there exists a
             // current, that means that we reused the fiber. We need to delete
             // it from the child list so that we don't add it to the deletion
@@ -890,21 +925,24 @@ function ChildReconciler(shouldTrackSideEffects) {
     if (shouldTrackSideEffects) {
       // Any existing children that weren't consumed above were deleted. We need
       // to add them to the deletion list.
+      // 没有被复用的 就需要全部删除
       existingChildren.forEach(child => deleteChild(returnFiber, child));
     }
 
     return resultingFirstChild;
   }
 
+  // 里面的判断逻辑和 reconcileChildrenArray 类似 只是 使用的了 itartor 专门的判断方法
   function reconcileChildrenIterator(
     returnFiber: Fiber,
     currentFirstChild: Fiber | null,
-    newChildrenIterable: Iterable<*>,
+    newChildrenIterable: Iterable<*>, // 具有Iterator属性的 对象
     expirationTime: ExpirationTime,
   ): Fiber | null {
     // This is the same implementation as reconcileChildrenArray(),
     // but using the iterator instead.
 
+    // 获取它的iterator function 
     const iteratorFn = getIteratorFn(newChildrenIterable);
     invariant(
       typeof iteratorFn === 'function',
@@ -954,7 +992,7 @@ function ChildReconciler(shouldTrackSideEffects) {
         }
       }
     }
-
+    // newChildrenIterable 具有Iterator属性的 对象
     const newChildren = iteratorFn.call(newChildrenIterable);
     invariant(newChildren != null, 'An iterable object provided no iterator.');
 
@@ -963,10 +1001,11 @@ function ChildReconciler(shouldTrackSideEffects) {
 
     let oldFiber = currentFirstChild;
     let lastPlacedIndex = 0;
-    let newIdx = 0;
+    let newIdx = 0; // 手动用来记录 iterator 遍历的次数 模拟index
     let nextOldFiber = null;
 
     let step = newChildren.next();
+    // 下面就是常规的 iterator 对象的遍历以及判断
     for (
       ;
       oldFiber !== null && !step.done;
