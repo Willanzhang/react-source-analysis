@@ -125,13 +125,14 @@ if (__DEV__) {
   didWarnAboutFunctionRefs = {};
 }
 
+// 调和子节点
 export function reconcileChildren(
   current: Fiber | null,
   workInProgress: Fiber,
   nextChildren: any,
   renderExpirationTime: ExpirationTime,
 ) {
-  if (current === null) { // 第一次渲染 
+  if (current === null) { // 是第一次渲染 
     // If this is a fresh new component that hasn't been rendered yet, we
     // won't update its child set by applying minimal side-effects. Instead,
     // we will add them all to the child before it gets rendered. That means
@@ -339,6 +340,7 @@ function updateFragment(
   workInProgress: Fiber,
   renderExpirationTime: ExpirationTime,
 ) {
+  // 因为Fragment的特殊（props 中只有children） 这里的nextChildren 直接等于workInProgress.pendingProps
   const nextChildren = workInProgress.pendingProps;
   reconcileChildren(
     current,
