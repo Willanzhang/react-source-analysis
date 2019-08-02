@@ -411,6 +411,8 @@ export function createHostRootFiber(isConcurrent: boolean): Fiber {
   return createFiber(HostRoot, null, null, mode);
 }
 
+// 判断不同的type  创建fiber对象并添加不同的 tag 
+// 组件类型和 tag 是有一一对应的关系
 export function createFiberFromTypeAndProps(
   type: any, // React$ElementType
   key: null | string,
@@ -421,16 +423,19 @@ export function createFiberFromTypeAndProps(
 ): Fiber {
   let fiber;
 
-  let fiberTag = IndeterminateComponent;
+  let fiberTag = IndeterminateComponent; // IndeterminateComponent 组件的类型没有确定
   // The resolved type is set if we know what the final type will be. I.e. it's not lazy.
   let resolvedType = type;
   if (typeof type === 'function') {
+    // 是否有construct 方法 有的话 是继承 Component   tag 是ClassComponent
     if (shouldConstruct(type)) {
       fiberTag = ClassComponent;
     }
   } else if (typeof type === 'string') {
+    // 'div' 等就是HostComponent
     fiberTag = HostComponent;
   } else {
+    // React 中有很多内置组件  是 symbol 类型
     getTag: switch (type) {
       case REACT_FRAGMENT_TYPE:
         return createFiberFromFragment(
@@ -442,7 +447,7 @@ export function createFiberFromTypeAndProps(
       case REACT_CONCURRENT_MODE_TYPE:
         return createFiberFromMode(
           pendingProps,
-          mode | ConcurrentMode | StrictMode,
+          mode | ConcurrentMode | StrictMode, // 使用ConcurrentMode 会自动加上 StrictMode
           expirationTime,
           key,
         );
@@ -458,6 +463,7 @@ export function createFiberFromTypeAndProps(
       case REACT_SUSPENSE_TYPE:
         return createFiberFromSuspense(pendingProps, mode, expirationTime, key);
       default: {
+        // React.createRef   React.memo   React.creatContext  返回的都是对象
         if (typeof type === 'object' && type !== null) {
           switch (type.$$typeof) {
             case REACT_PROVIDER_TYPE:
@@ -497,6 +503,7 @@ export function createFiberFromTypeAndProps(
             info += '\n\nCheck the render method of `' + ownerName + '`.';
           }
         }
+        // 若是还没找到
         invariant(
           false,
           'Element type is invalid: expected a string (for built-in ' +
@@ -509,6 +516,7 @@ export function createFiberFromTypeAndProps(
     }
   }
 
+  // 创建fiber
   fiber = createFiber(fiberTag, pendingProps, key, mode);
   fiber.elementType = type;
   fiber.type = resolvedType;
@@ -517,6 +525,7 @@ export function createFiberFromTypeAndProps(
   return fiber;
 }
 
+// 这里是根据不同过得type 产生相对类型的组件
 export function createFiberFromElement(
   element: ReactElement,
   mode: TypeOfMode,
@@ -526,6 +535,7 @@ export function createFiberFromElement(
   if (__DEV__) {
     owner = element._owner;
   }
+  // 此处type  是使用createElement()传进去的type  'div'  ClassComponent 或者 FunctionComponent
   const type = element.type;
   const key = element.key;
   const pendingProps = element.props;
@@ -544,12 +554,16 @@ export function createFiberFromElement(
   return fiber;
 }
 
+// 产生一个Fragment的fiber对象
 export function createFiberFromFragment(
   elements: ReactFragment,
   mode: TypeOfMode,
   expirationTime: ExpirationTime,
   key: null | string,
 ): Fiber {
+  // 还是使用createFiber 
+  // 第一个参数 tag 是 Fragment 
+  // 第二个参数 pendingProps是 elements = element.props.children 因为对于Fragment 它的props 就只有children
   const fiber = createFiber(Fragment, elements, key, mode);
   fiber.expirationTime = expirationTime;
   return fiber;
