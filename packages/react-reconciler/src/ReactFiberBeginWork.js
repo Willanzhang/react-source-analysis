@@ -395,7 +395,7 @@ function markRef(current: Fiber | null, workInProgress: Fiber) {
     workInProgress.effectTag |= Ref;
   }
 }
-
+//  通过current和instance判断如何创建classComponent 以及执行什么生命周期
 function updateFunctionComponent(
   current,
   workInProgress,
@@ -450,9 +450,9 @@ function updateClassComponent(
   prepareToReadContext(workInProgress, renderExpirationTime);
 
   const instance = workInProgress.stateNode;
-  // stateNode 跟当前Fiber相关本地状态（比如浏览器环境就是DOM节点）
+  // stateNode 是当前Fiber相关本地状态（比如浏览器环境就是DOM节点）
   let shouldUpdate;
-  // 首次渲染的时候 节点还没有被创建
+  // instance === null 首次渲染的时候 节点还没有被创建
   if (instance === null) {
     if (current !== null) {
       // current !== null 至少经历过于过一次渲染了
@@ -486,6 +486,7 @@ function updateClassComponent(
     // shouldUpdate 是true 因为第一次渲染 后面肯定会有更新操作
     shouldUpdate = true;
   } else if (current === null) {
+    // instance !== null current === null
     // resume 中断后重新开始
     // 有instance 但是没有current 是之前被中断的
     // 这种情况出现在：1-classComponent在执行 render 方法的时，报错了，此时instance已经创建了
@@ -512,6 +513,8 @@ function updateClassComponent(
     );
   }
   // 上面的代码已经得到了 shouldUpdate
+  // 判断是否要更新 或者忽略更新
+  // 调和子节点 所有component基本都要
   return finishClassComponent(
     current,
     workInProgress,
@@ -531,16 +534,20 @@ function finishClassComponent(
   renderExpirationTime: ExpirationTime,
 ) {
   // Refs should update even if shouldComponentUpdate returns false
+  // 即使shouldComponentUpdate返回false refs也是要更新的
   markRef(current, workInProgress);
 
   const didCaptureError = (workInProgress.effectTag & DidCapture) !== NoEffect;
 
   if (!shouldUpdate && !didCaptureError) {
     // Context providers should defer to sCU for rendering
+    // context相关
     if (hasContext) {
       invalidateContextProvider(workInProgress, Component, false);
     }
-
+    // 不需要更新 且没有错误捕获
+    // 可以跳过 render 跳过更新  
+    // 会跳过当前fiber节点以及子节点的更新 bailoutOnAlreadyFinishedWork
     return bailoutOnAlreadyFinishedWork(
       current,
       workInProgress,
@@ -557,6 +564,8 @@ function finishClassComponent(
     didCaptureError &&
     typeof Component.getDerivedStateFromError !== 'function'
   ) {
+    // 16.6 新添加的 getDerivedStateFromError 方法
+    // 在有任何错误捕获的时候 调用这个方法 生成新的state  和 didErrorCatch 的区别是当前 生成 state 还是下一次更新生成state
     // If we captured an error, but getDerivedStateFrom catch is not defined,
     // unmount all the children. componentDidCatch will schedule an update to
     // re-render a fallback. This is temporary until we migrate everyone to
@@ -614,7 +623,7 @@ function finishClassComponent(
   if (hasContext) {
     invalidateContextProvider(workInProgress, Component, true);
   }
-
+  // 返回第一个子节点   再进行workloop？
   return workInProgress.child;
 }
 
