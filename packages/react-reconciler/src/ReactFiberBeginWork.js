@@ -450,9 +450,14 @@ function updateClassComponent(
   prepareToReadContext(workInProgress, renderExpirationTime);
 
   const instance = workInProgress.stateNode;
+  // stateNode 跟当前Fiber相关本地状态（比如浏览器环境就是DOM节点）
   let shouldUpdate;
+  // 首次渲染的时候 节点还没有被创建
   if (instance === null) {
     if (current !== null) {
+      // current !== null 至少经历过于过一次渲染了
+      // 这个时候 current存在 但是instance不存在 说明这个组件是个suspended组件 
+      // 处于 suspending 的状态
       // An class component without an instance only mounts if it suspended
       // inside a non- concurrent tree, in an inconsistent state. We want to
       // tree it like a new mount, even though an empty version of it already
@@ -463,20 +468,30 @@ function updateClassComponent(
       workInProgress.effectTag |= Placement;
     }
     // In the initial pass we might need to construct the instance.
+    // 初始的时候需要 创建 instance
     constructClassInstance(
       workInProgress,
       Component,
       nextProps,
       renderExpirationTime,
     );
+    // mountClassInstance :Invokes the mount life-cycles on a previously never rendered instance.
+    // 在第一次渲染的时候 装载 生命周期方法（componentWillMount 会被执行 componentDidMount会被标记在渲染成dom后执行）
     mountClassInstance(
       workInProgress,
       Component,
       nextProps,
       renderExpirationTime,
     );
+    // shouldUpdate 是true 因为第一次渲染 后面肯定会有更新操作
     shouldUpdate = true;
   } else if (current === null) {
+    // resume 中断后重新开始
+    // 有instance 但是没有current 是之前被中断的
+    // 这种情况出现在：1-classComponent在执行 render 方法的时，报错了，此时instance已经创建了
+    // 这里复用instance  判断是否要更新组件 
+    // 会调用（componentWillReceiveProps componentDidMount  componentShouldUpdate ）
+    // 这个组件是没有current 还是当做第一次渲染， 还是要判断 是否要执行componentDidMount
     // In a resume, we'll already have an instance we can reuse.
     shouldUpdate = resumeMountClassInstance(
       workInProgress,
@@ -485,6 +500,9 @@ function updateClassComponent(
       renderExpirationTime,
     );
   } else {
+    // 既有 intance 又有 current 说明组件经过一次渲染
+    // 和resumeMountClassInstance 类型  区别是调用的生命周期方法（只会调用 componentDidUpdate  componentShouldUpdate）
+    // 因为这是第二次渲染了
     shouldUpdate = updateClassInstance(
       current,
       workInProgress,
@@ -493,6 +511,7 @@ function updateClassComponent(
       renderExpirationTime,
     );
   }
+  // 上面的代码已经得到了 shouldUpdate
   return finishClassComponent(
     current,
     workInProgress,

@@ -33,5 +33,6 @@ export function has(key) {
 }
 
 export function set(key, value) {
+  // 实例的 ._reactInternalFiber 可以拿到实例对应的fiber对象
   key._reactInternalFiber = value;
 }

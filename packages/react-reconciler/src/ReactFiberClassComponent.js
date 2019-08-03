@@ -241,6 +241,7 @@ const classComponentUpdater = { // setState 和 forceUpdate
 	},
 };
 
+// 检查是否有ShouldComponentUpdate方法 用来判断组件组件是否要更新
 function checkShouldComponentUpdate(
 	workInProgress,
 	ctor,
@@ -273,7 +274,10 @@ function checkShouldComponentUpdate(
 	}
 
 	if (ctor.prototype && ctor.prototype.isPureReactComponent) {
+		// 判断是否是pureComponent   如果都是 prop  和 state 都是浅等于 就不需要更新
+		// 也就是有一个改变了 就返回 true 需要更新
 		return (
+			// shallowEqual 浅等于
 			!shallowEqual(oldProps, newProps) || !shallowEqual(oldState, newState)
 		);
 	}
@@ -495,6 +499,7 @@ function checkClassInstance(workInProgress: Fiber, ctor: any, newProps: any) {
 	}
 }
 
+// 采用 classInstance
 function adoptClassInstance(workInProgress: Fiber, instance: any): void {
 	instance.updater = classComponentUpdater;
 	workInProgress.stateNode = instance;
@@ -504,6 +509,7 @@ function adoptClassInstance(workInProgress: Fiber, instance: any): void {
 		instance._reactInternalInstance = fakeInternalInstance;
 	}
 }
+
 
 function constructClassInstance(
 	workInProgress: Fiber,
@@ -553,7 +559,7 @@ function constructClassInstance(
 			new ctor(props, context); // eslint-disable-line no-new
 		}
 	}
-
+	// new ctor = new construtor   =  ReactElement中的type
 	const instance = new ctor(props, context);
 	const state = (workInProgress.memoizedState =
 		instance.state !== null && instance.state !== undefined
@@ -777,7 +783,10 @@ function mountClassInstance(
 	}
 
 	let updateQueue = workInProgress.updateQueue;
+	// 对于初次渲染时候 updateQueue 是null
+	// 非初次的话updateQueue可能有多个
 	if (updateQueue !== null) {
+		// 计算得到新的state 并且赋值给workInProgress.memoizedState
 		processUpdateQueue(
 			workInProgress,
 			updateQueue,
@@ -788,8 +797,10 @@ function mountClassInstance(
 		instance.state = workInProgress.memoizedState;
 	}
 
+	// Derived react 一个新的生命周期方法
 	const getDerivedStateFromProps = ctor.getDerivedStateFromProps;
 	if (typeof getDerivedStateFromProps === 'function') {
+		// 如果存在要计算一个 新的state  在组件进行更新的过程中会被调用的
 		applyDerivedStateFromProps(
 			workInProgress,
 			ctor,
@@ -807,10 +818,14 @@ function mountClassInstance(
 		(typeof instance.UNSAFE_componentWillMount === 'function' ||
 			typeof instance.componentWillMount === 'function')
 	) {
+		// 第一次渲染调用的  componentWillMount生命周期方法
 		callComponentWillMount(workInProgress, instance);
 		// If we had additional state updates during this life-cycle, let's
 		// process them now.
+
 		updateQueue = workInProgress.updateQueue;
+		// 在 callComponentWillMount 可能会进行跟新  setState forceUpdate 等
+		// 要重新进行计算 state
 		if (updateQueue !== null) {
 			processUpdateQueue(
 				workInProgress,
@@ -824,10 +839,13 @@ function mountClassInstance(
 	}
 
 	if (typeof instance.componentDidMount === 'function') {
+		// 如果有 componentDidMount 则要告诉 commit 阶段  是有这个方法的
+		// 因为只有当组件内容真正被 mount 到dom上时 才执行这个方法
 		workInProgress.effectTag |= Update;
 	}
 }
 
+// 复用instance 更新state  调用生命周期
 function resumeMountClassInstance(
 	workInProgress: Fiber,
 	ctor: any,
@@ -869,6 +887,7 @@ function resumeMountClassInstance(
 		(typeof instance.UNSAFE_componentWillReceiveProps === 'function' ||
 			typeof instance.componentWillReceiveProps === 'function')
 	) {
+		// 实例存在 且没有新的生命周期方法  并且props 和 context都有改变
 		if (oldProps !== newProps || oldContext !== nextContext) {
 			callComponentWillReceiveProps(
 				workInProgress,
@@ -878,7 +897,7 @@ function resumeMountClassInstance(
 			);
 		}
 	}
-
+	// 这里设置了 hasForceUpdate = false
 	resetHasForceUpdateBeforeProcessing();
 
 	const oldState = workInProgress.memoizedState;
@@ -903,6 +922,7 @@ function resumeMountClassInstance(
 		// If an update was already in progress, we should schedule an Update
 		// effect even though we're bailing out, so that cWU/cDU are called.
 		if (typeof instance.componentDidMount === 'function') {
+			// 这个组件是没有current 还是当做第一次渲染， 还是要判断 是否要执行componentDidMount
 			workInProgress.effectTag |= Update;
 		}
 		return false;

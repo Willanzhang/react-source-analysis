@@ -319,6 +319,7 @@ export function enqueueCapturedUpdate<State>(
   }
 }
 
+// 避免直接在 current上修改属性 复制一个进行操作
 function ensureWorkInProgressQueueIsAClone<State>(
   workInProgress: Fiber,
   queue: UpdateQueue<State>,
@@ -334,6 +335,7 @@ function ensureWorkInProgressQueueIsAClone<State>(
   return queue;
 }
 
+// 通过update计算 state
 function getStateFromUpdate<State>(
   workInProgress: Fiber,
   queue: UpdateQueue<State>,
@@ -366,6 +368,7 @@ function getStateFromUpdate<State>(
         (workInProgress.effectTag & ~ShouldCapture) | DidCapture;
     }
     // Intentional fallthrough
+    // updateState 就是通过setState 执行的更新
     case UpdateState: {
       const payload = update.payload;
       let partialState;
@@ -400,6 +403,7 @@ function getStateFromUpdate<State>(
   return prevState;
 }
 
+// 计算新的state 并且赋值给workInProgress.memoizedState
 export function processUpdateQueue<State>(
   workInProgress: Fiber,
   queue: UpdateQueue<State>,
@@ -409,6 +413,7 @@ export function processUpdateQueue<State>(
 ): void {
   hasForceUpdate = false;
 
+  // 确保使用一个clone了的queue
   queue = ensureWorkInProgressQueueIsAClone(workInProgress, queue);
 
   if (__DEV__) {
@@ -416,6 +421,7 @@ export function processUpdateQueue<State>(
   }
 
   // These values may change as we process the queue.
+  // 每次执行完processUpdateQueue 计算出的新的state 都会被赋值到queue.baseState上
   let newBaseState = queue.baseState;
   let newFirstUpdate = null;
   let newExpirationTime = NoWork;
@@ -446,6 +452,8 @@ export function processUpdateQueue<State>(
     } else {
       // This update does have sufficient priority. Process it and compute
       // a new result.
+      // 优先级高 这次更新需要被执行 计算state   
+      // getStateFromUpdate 是通过update类型计算 state
       resultState = getStateFromUpdate(
         workInProgress,
         queue,
@@ -456,8 +464,10 @@ export function processUpdateQueue<State>(
       );
       const callback = update.callback;
       if (callback !== null) {
+        // 是否有callback  给effectTag 加上callback  在state全部完成要调用callback
         workInProgress.effectTag |= Callback;
         // Set this to null, in case it was mutated during an aborted render.
+        // 设置成null 方正在一次呗中断的render过程中被修改
         update.nextEffect = null;
         if (queue.lastEffect === null) {
           queue.firstEffect = queue.lastEffect = update;
@@ -471,7 +481,8 @@ export function processUpdateQueue<State>(
     update = update.next;
   }
 
-  // Separately, iterate though the list of captured updates.
+  // Separately 独立的 ，单独的，分别的, iterate though the list of captured updates.
+  // 下面是处理 capturedUpdate 基本和 updateState 的相同  就是  effect  是 capturedEffect
   let newFirstCapturedUpdate = null;
   update = queue.firstCapturedUpdate;
   while (update !== null) {
