@@ -250,6 +250,7 @@ export function prepareUpdate(
   );
 }
 
+// 是否子节点是纯文本
 export function shouldSetTextContent(type: string, props: Props): boolean {
   return (
     type === 'textarea' ||

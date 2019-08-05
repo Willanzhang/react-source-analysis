@@ -730,18 +730,23 @@ function updateHostRoot(current, workInProgress, renderExpirationTime) {
   return workInProgress.child;
 }
 
+// 更新 HostComponent 返回第一个子节点
 function updateHostComponent(current, workInProgress, renderExpirationTime) {
   pushHostContext(workInProgress);
 
   if (current === null) {
+    // 如果要复用服务端 渲染返回的dom内容 只有HostComponent 和 text 是需要被复用的
+    // 对与ClassComponent 和 FunctionComponent 因为他们本身不对应 dom  所以不会调用hydrate 相关的东西
     tryToClaimNextHydratableInstance(workInProgress);
   }
 
   const type = workInProgress.type;
+  // 对于HostComponent 是没有state的概念的 所以只使用props
   const nextProps = workInProgress.pendingProps;
   const prevProps = current !== null ? current.memoizedProps : null;
 
   let nextChildren = nextProps.children;
+  // shouldSetTextContent 判断这个节点的children是否纯的字符串
   const isDirectTextChild = shouldSetTextContent(type, nextProps);
 
   if (isDirectTextChild) {
@@ -749,22 +754,29 @@ function updateHostComponent(current, workInProgress, renderExpirationTime) {
     // case. We won't handle it as a reified child. We will instead handle
     // this in the host environment that also have access to this prop. That
     // avoids allocating another HostText fiber and traversing it.
+    // 如果直接是文字children 
     nextChildren = null;
   } else if (prevProps !== null && shouldSetTextContent(type, prevProps)) {
     // If we're switching from a direct text child to a normal child, or to
     // empty, we need to schedule the text content to be reset.
+    // 假如现在不是文字节点， 但以前是文字节点， 需要以前的文字内容去掉， 换成一个新的节点
     workInProgress.effectTag |= ContentReset;
   }
 
+  // 只有classComponent 有instance 和 dom节点有它的instance
+  // 只要这两种情况才能拿到它的ref
   markRef(current, workInProgress);
 
   // Check the host config to see if the children are offscreen/hidden.
   if (
-    renderExpirationTime !== Never &&
-    workInProgress.mode & ConcurrentMode &&
-    shouldDeprioritizeSubtree(type, nextProps)
+    renderExpirationTime !== Never && // 设置hidden 属性renderExpirationTime 会等于 Nerver
+    workInProgress.mode & ConcurrentMode && // workInProgress.mode 具有 ConcurrentMode 并且
+    shouldDeprioritizeSubtree(type, nextProps) // 此节点是否有hidden属性
   ) {
+    // 假如给节点设置了hidden属性 并且在ConcurrentMode(异步渲染的模式下)是可以永远不被更新到的
+    // 应用： 模拟浏览器 边上的滚动条  ，做这种组件的时候 可以通过这个属性进行优化 ， 把不需要显示的组件设置成hidden 不用每次都更新， 提高效率
     // Schedule this fiber to re-render at offscreen priority. Then bailout.
+    // 设置这个节点为永远不会被更新到
     workInProgress.expirationTime = Never;
     return null;
   }
@@ -778,12 +790,16 @@ function updateHostComponent(current, workInProgress, renderExpirationTime) {
   return workInProgress.child;
 }
 
+// HostText是没有子节点
 function updateHostText(current, workInProgress) {
   if (current === null) {
     tryToClaimNextHydratableInstance(workInProgress);
   }
   // Nothing to do here. This is terminal. We'll do the completion step
   // immediately after.
+  // HostText是没有子节点
+  // 要等到后期compelete 整个树的时候， 或者commit 才会 真正插入到dom中
+  // 对HostText是不需要增加effectTag的 因为对它而言只有一种effectTag  就是把文字插入到dom中显示
   return null;
 }
 
