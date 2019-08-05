@@ -132,7 +132,8 @@ function scheduleRootUpdate( // 调度root进行更新
   // 根据expirationTime 创建update
   const update = createUpdate(expirationTime);
   // Caution: React DevTools currently depends on this property
-  // being called "element".
+  // 这里没有写update 的类型， 默认使用UpdateState  payload就相对是state 
+  // being called "element". 对 HostRoot(fiber是RootFiber) 它的palyload  就是只有element
   update.payload = {element};
 
   callback = callback === undefined ? null : callback;
