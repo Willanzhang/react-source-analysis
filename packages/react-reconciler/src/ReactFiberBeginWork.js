@@ -191,6 +191,7 @@ function forceUnmountCurrentAndReconcile(
   );
 }
 
+// forwardRef 更新机制
 function updateForwardRef(
   current: Fiber | null,
   workInProgress: Fiber,
@@ -199,13 +200,16 @@ function updateForwardRef(
   renderExpirationTime: ExpirationTime,
 ) {
   const render = type.render;
+  // 拿到ref 进行特殊处理 再通过render(nextProps, ref); 当做参数 传递
   const ref = workInProgress.ref;
   if (hasLegacyContextChanged()) {
     // Normally we can bail out on props equality but if context has changed
     // we don't do the bailout and we have to reuse existing props instead.
   } else if (workInProgress.memoizedProps === nextProps) {
+    // current !== null 说明此fiber是经过一次渲染  ref也是经过处理的
     const currentRef = current !== null ? current.ref : null;
     if (ref === currentRef) {
+      // props 相等  ref 又相同 子节点可以不需要进行更新
       return bailoutOnAlreadyFinishedWork(
         current,
         workInProgress,
@@ -221,9 +225,10 @@ function updateForwardRef(
     nextChildren = render(nextProps, ref);
     ReactCurrentFiber.setCurrentPhase(null);
   } else {
+    // 不符合就要进行更新
     nextChildren = render(nextProps, ref);
   }
-
+  // 在进行调和字节点
   reconcileChildren(
     current,
     workInProgress,
