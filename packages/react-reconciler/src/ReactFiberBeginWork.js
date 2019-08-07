@@ -362,6 +362,9 @@ function updateMode(
   renderExpirationTime: ExpirationTime,
 ) {
   const nextChildren = workInProgress.pendingProps.children;
+  // 直接调和子节点
+  // 为什么可以直接调用呢
+  // 进入reconcileChildren 中查看reconcileChildFibers
   reconcileChildren(
     current,
     workInProgress,
