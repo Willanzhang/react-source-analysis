@@ -642,6 +642,8 @@ function pushHostRootContext(workInProgress) {
   pushHostContainer(workInProgress, root.containerInfo);
 }
 
+// react应用中只会有一个hostRoot   对应的对象是RootFiber对象
+// 重点是要弄清楚它的 update 来自哪里 里面是什么内容  以elemennt 作为chidren 进行调和
 function updateHostRoot(current, workInProgress, renderExpirationTime) {
   pushHostRootContext(workInProgress);
   const updateQueue = workInProgress.updateQueue;
@@ -653,7 +655,12 @@ function updateHostRoot(current, workInProgress, renderExpirationTime) {
   );
   const nextProps = workInProgress.pendingProps;
   const prevState = workInProgress.memoizedState;
+
+  // 对于HostRoot 来说 他的statel里面就只有一个属性 就是element
+  // 当是第一次渲染的时候 是没有prveState
   const prevChildren = prevState !== null ? prevState.element : null;
+  // 本身是计算得到state 但是对HostRoot 而言得到的是 ReactDOM.render(<App />, element) 中那个element
+  // ReactDOM.render 的时候给它 添加一个update !!!!
   processUpdateQueue(
     workInProgress,
     updateQueue,
@@ -661,14 +668,20 @@ function updateHostRoot(current, workInProgress, renderExpirationTime) {
     null,
     renderExpirationTime,
   );
+  // 计算只有得到state 里面就只有{element}
   const nextState = workInProgress.memoizedState;
   // Caution: React DevTools currently depends on this property
   // being called "element".
+  // 以element 作为children 进行调和
   const nextChildren = nextState.element;
   if (nextChildren === prevChildren) {
+    // 如果是相同的state就 直接使用原来的
+    // bailout: 救助，跳伞
     // If the state is the same as before, that's a bailout because we had
     // no work that expires at this time.
-    resetHydrationState();
+    // 一般只有在 ReactDOM.render 的时候RootFiber才会创建更新，
+    // 其他的更新 其它基本都是在（ReactDOM.render(<App />, element)）的App节点上进行更新
+    resetHydrationState(); // 与在有服务端渲染的情况下 复用dom有关
     return bailoutOnAlreadyFinishedWork(
       current,
       workInProgress,
@@ -695,6 +708,7 @@ function updateHostRoot(current, workInProgress, renderExpirationTime) {
     // Ensure that children mount into this root without tracking
     // side-effects. This ensures that we don't store Placement effects on
     // nodes that will be hydrated.
+    // 当react认为是第一次渲染的时候 用mountChildFibers 挂载
     workInProgress.child = mountChildFibers(
       workInProgress,
       null,
@@ -704,6 +718,7 @@ function updateHostRoot(current, workInProgress, renderExpirationTime) {
   } else {
     // Otherwise reset hydration state in case we aborted and resumed another
     // root.
+    // 不是第一次渲染的时候直接调和子节点
     reconcileChildren(
       current,
       workInProgress,
@@ -715,18 +730,23 @@ function updateHostRoot(current, workInProgress, renderExpirationTime) {
   return workInProgress.child;
 }
 
+// 更新 HostComponent 返回第一个子节点
 function updateHostComponent(current, workInProgress, renderExpirationTime) {
   pushHostContext(workInProgress);
 
   if (current === null) {
+    // 如果要复用服务端 渲染返回的dom内容 只有HostComponent 和 text 是需要被复用的
+    // 对与ClassComponent 和 FunctionComponent 因为他们本身不对应 dom  所以不会调用hydrate 相关的东西
     tryToClaimNextHydratableInstance(workInProgress);
   }
 
   const type = workInProgress.type;
+  // 对于HostComponent 是没有state的概念的 所以只使用props
   const nextProps = workInProgress.pendingProps;
   const prevProps = current !== null ? current.memoizedProps : null;
 
   let nextChildren = nextProps.children;
+  // shouldSetTextContent 判断这个节点的children是否纯的字符串
   const isDirectTextChild = shouldSetTextContent(type, nextProps);
 
   if (isDirectTextChild) {
@@ -734,22 +754,29 @@ function updateHostComponent(current, workInProgress, renderExpirationTime) {
     // case. We won't handle it as a reified child. We will instead handle
     // this in the host environment that also have access to this prop. That
     // avoids allocating another HostText fiber and traversing it.
+    // 如果直接是文字children 
     nextChildren = null;
   } else if (prevProps !== null && shouldSetTextContent(type, prevProps)) {
     // If we're switching from a direct text child to a normal child, or to
     // empty, we need to schedule the text content to be reset.
+    // 假如现在不是文字节点， 但以前是文字节点， 需要以前的文字内容去掉， 换成一个新的节点
     workInProgress.effectTag |= ContentReset;
   }
 
+  // 只有classComponent 有instance 和 dom节点有它的instance
+  // 只要这两种情况才能拿到它的ref
   markRef(current, workInProgress);
 
   // Check the host config to see if the children are offscreen/hidden.
   if (
-    renderExpirationTime !== Never &&
-    workInProgress.mode & ConcurrentMode &&
-    shouldDeprioritizeSubtree(type, nextProps)
+    renderExpirationTime !== Never && // 设置hidden 属性renderExpirationTime 会等于 Nerver
+    workInProgress.mode & ConcurrentMode && // workInProgress.mode 具有 ConcurrentMode 并且
+    shouldDeprioritizeSubtree(type, nextProps) // 此节点是否有hidden属性
   ) {
+    // 假如给节点设置了hidden属性 并且在ConcurrentMode(异步渲染的模式下)是可以永远不被更新到的
+    // 应用： 模拟浏览器 边上的滚动条  ，做这种组件的时候 可以通过这个属性进行优化 ， 把不需要显示的组件设置成hidden 不用每次都更新， 提高效率
     // Schedule this fiber to re-render at offscreen priority. Then bailout.
+    // 设置这个节点为永远不会被更新到
     workInProgress.expirationTime = Never;
     return null;
   }
@@ -763,12 +790,16 @@ function updateHostComponent(current, workInProgress, renderExpirationTime) {
   return workInProgress.child;
 }
 
+// HostText是没有子节点
 function updateHostText(current, workInProgress) {
   if (current === null) {
     tryToClaimNextHydratableInstance(workInProgress);
   }
   // Nothing to do here. This is terminal. We'll do the completion step
   // immediately after.
+  // HostText是没有子节点
+  // 要等到后期compelete 整个树的时候， 或者commit 才会 真正插入到dom中
+  // 对HostText是不需要增加effectTag的 因为对它而言只有一种effectTag  就是把文字插入到dom中显示
   return null;
 }
 
@@ -931,13 +962,19 @@ function mountIncompleteClassComponent(
   );
 }
 
+// 挂载IndeterminateComponent   初次渲染的时候 所有没有construtor 的函数都是 IndeterminateComponent
 function mountIndeterminateComponent(
   _current,
   workInProgress,
   Component,
   renderExpirationTime,
 ) {
+  
   if (_current !== null) {
+    // 只有在第一次渲染的时候才会 有IndeterminateComponent 
+    // 但是此时会有 可能是因为程序执行的时候出现throw err 或者 抛出一个 promise(suspended 组件 异步组件)的情况
+    // 因此要做一个初始化
+    // 重新进行一次初次渲染的整体的流程
     // An indeterminate component only mounts if it suspended inside a non-
     // concurrent tree, in an inconsistent state. We want to tree it like
     // a new mount, even though an empty version of it already committed.
@@ -982,6 +1019,7 @@ function mountIndeterminateComponent(
     ReactCurrentOwner.current = workInProgress;
     value = Component(props, context);
   } else {
+    // 能进入这个方法 至少说明它 一个function 具体是什么类型还不清楚
     value = Component(props, context);
   }
   // React DevTools reads this flag.
@@ -990,8 +1028,8 @@ function mountIndeterminateComponent(
   if (
     typeof value === 'object' &&
     value !== null &&
-    typeof value.render === 'function' &&
-    value.$$typeof === undefined
+    typeof value.render === 'function' && // 如果函数有 返回的是一个 有render方法的 对象(a)  react会将其作为一个ClassComponent 处理， 对象a的中的react生命周期也会被执行
+    value.$$typeof === undefined // 像 forwardRef  Context  这种 object是有$$typeof
   ) {
     // Proceed under the assumption that this is a class instance
     workInProgress.tag = ClassComponent;
@@ -1093,6 +1131,8 @@ function mountIndeterminateComponent(
         }
       }
     }
+    // 如果是functionComponent   调用Component 得到value就是 他的children
+    // 直接调和子节点就行了
     reconcileChildren(null, workInProgress, value, renderExpirationTime);
     return workInProgress.child;
   }
@@ -1633,6 +1673,7 @@ function beginWork(
   workInProgress.expirationTime = NoWork;
   // 如果当前节点是有更新的 通过判断节点的类型 执行不同的方法进行组件的更新
   switch (workInProgress.tag) {
+    // 未明确的 Component
     case IndeterminateComponent: {
       const elementType = workInProgress.elementType;
       return mountIndeterminateComponent(
