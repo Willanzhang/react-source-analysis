@@ -1228,6 +1228,7 @@ function ChildReconciler(shouldTrackSideEffects) {
     }
   }
 
+  // 调和poral
   function reconcileSinglePortal(
     returnFiber: Fiber,
     currentFirstChild: Fiber | null,
@@ -1242,10 +1243,13 @@ function ChildReconciler(shouldTrackSideEffects) {
       if (child.key === key) {
         if (
           child.tag === HostPortal &&
-          child.stateNode.containerInfo === portal.containerInfo &&
+          child.stateNode.containerInfo === portal.containerInfo && // 对比多了一个判断渲染的节点
           child.stateNode.implementation === portal.implementation
         ) {
+          // 都符合是可以被复用的
+          // 删除其他节点兄弟节点
           deleteRemainingChildren(returnFiber, child.sibling);
+          // 复用
           const existing = useFiber(
             child,
             portal.children || [],
@@ -1262,6 +1266,7 @@ function ChildReconciler(shouldTrackSideEffects) {
       }
       child = child.sibling;
     }
+    // 所有节点都不可以复用 直接创建一个
     const created = createFiberFromPortal(
       portal,
       returnFiber.mode,

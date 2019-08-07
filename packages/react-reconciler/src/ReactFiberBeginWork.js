@@ -1308,12 +1308,15 @@ function updateSuspenseComponent(
   return next;
 }
 
+// 更新 PortalComponent
 function updatePortalComponent(
   current: Fiber | null,
   workInProgress: Fiber,
   renderExpirationTime: ExpirationTime,
 ) {
+  // 将它 放入挂载点workInProgress.stateNode.containerInfo 这个也是它和其他component的区别  与context相关
   pushHostContainer(workInProgress, workInProgress.stateNode.containerInfo);
+  // portal 只有children
   const nextChildren = workInProgress.pendingProps;
   if (current === null) {
     // Portals are special because we don't append the children during mount
