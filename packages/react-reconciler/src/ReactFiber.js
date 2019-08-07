@@ -300,6 +300,7 @@ function shouldConstruct(Component: Function) {
 }
 
 export function isSimpleFunctionComponent(type: any) {
+  // 没有 classComponent的属性就是一个纯的FunctionComponent
   return (
     typeof type === 'function' &&
     !shouldConstruct(type) &&

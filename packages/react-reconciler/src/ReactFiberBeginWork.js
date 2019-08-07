@@ -238,6 +238,7 @@ function updateForwardRef(
   return workInProgress.child;
 }
 
+// memoComponent的更新
 function updateMemoComponent(
   current: Fiber | null,
   workInProgress: Fiber,
@@ -247,13 +248,23 @@ function updateMemoComponent(
   renderExpirationTime: ExpirationTime,
 ): null | Fiber {
   if (current === null) {
+    // 判断current 对于是否等于 null 对于所有组件更新都是很重要的
+    // 注意它的使用方法 这里的type就是 使用过的使用第一个传进来的参数 FunctionComponent
+    // !!! 这个才是他的 真正的 children(第一个参数)  而reconcilerChildren 调和是指调和 它包裹的children（props.children）
+    // 因此不需要使用 reconcilerChildren 调和子节点
     let type = Component.type;
+    // compare 传进来的第二个参数 有点类似componentShouldUpdate（比较新老 props 判断更新） 判断组件是否需要更新，
     if (isSimpleFunctionComponent(type) && Component.compare === null) {
       // If this is a plain function component without default props,
       // and with only the default shallow comparison, we upgrade it
       // to a SimpleMemoComponent to allow fast path updates.
+      // 之前的tag是 MemoComponent 现在赋值为 SimpleMemoComponent
       workInProgress.tag = SimpleMemoComponent;
       workInProgress.type = type;
+      // 如果是个纯 FunctionComponent 并且 没有compare 
+      // 会按照 updateSimpleMemoComponent 这种方式更新组件
+      // updateSimpleMemoComponent 中 MemoComponent 其实就是包装了FunctionComponent 
+      // 通过判断可以是否直接按照 FunctionComponent 进行更新
       return updateSimpleMemoComponent(
         current,
         workInProgress,
@@ -263,6 +274,9 @@ function updateMemoComponent(
         renderExpirationTime,
       );
     }
+    // 对于纯函数的  直接调用createFiberFromTypeAndProps 减少开销（无需调用reconcilerChildren）
+    // 因为他的children非常明确
+    // nextProps 是放到MemoComponent上的props
     let child = createFiberFromTypeAndProps(
       Component.type,
       null,
@@ -276,6 +290,7 @@ function updateMemoComponent(
     workInProgress.child = child;
     return child;
   }
+  // 对于不是第一次渲染的情况 他的 currentChild = current.child
   let currentChild = ((current.child: any): Fiber); // This is always exactly one child
   if (
     updateExpirationTime === NoWork ||
@@ -286,6 +301,7 @@ function updateMemoComponent(
     const prevProps = currentChild.memoizedProps;
     // Default to shallow comparison
     let compare = Component.compare;
+    // 对比props ref 是否变化
     compare = compare !== null ? compare : shallowEqual;
     if (compare(prevProps, nextProps) && current.ref === workInProgress.ref) {
       return bailoutOnAlreadyFinishedWork(
@@ -321,9 +337,10 @@ function updateSimpleMemoComponent(
   ) {
     const prevProps = current.memoizedProps;
     if (
-      shallowEqual(prevProps, nextProps) &&
-      current.ref === workInProgress.ref
+      shallowEqual(prevProps, nextProps) && // 比较props是否相等
+      current.ref === workInProgress.ref // ref不是props中的内容 要单独拎出来进行对比
     ) {
+      // 没改变跳过子fieber的更新
       return bailoutOnAlreadyFinishedWork(
         current,
         workInProgress,
@@ -331,6 +348,7 @@ function updateSimpleMemoComponent(
       );
     }
   }
+  // 否则直接进行 FunctionComponent的更新  应为它是个纯的FunctionComponent
   return updateFunctionComponent(
     current,
     workInProgress,
