@@ -6,8 +6,8 @@
  *
  * @flow
  */
-
 import invariant from 'shared/invariant';
+// 去向 packages\react-reconciler\src\forks 下找对应环境的配置
 
 // We expect that our Rollup, Jest, and Flow configurations
 // always shim this module with the corresponding host config

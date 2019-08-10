@@ -90,8 +90,9 @@ let appendAllChildren;
 let updateHostContainer;
 let updateHostComponent;
 let updateHostText;
+// react-dom 环境下为true
 if (supportsMutation) {
-  // Mutation mode
+  // Mutation mode Mutation：突变
 
   appendAllChildren = function(
     parent: Instance,
@@ -529,6 +530,9 @@ if (supportsMutation) {
   };
 }
 
+// pop 各种context相关的内容（栈被清空，完成了把标记清空）  （在update的时候push各种context）、
+// 对HostComponent 执行时初始化和更新
+// 初始化监听事件
 function completeWork(
   current: Fiber | null,
   workInProgress: Fiber,
@@ -567,6 +571,7 @@ function completeWork(
         // TODO: Delete this when we delete isMounted and findDOMNode.
         workInProgress.effectTag &= ~Placement;
       }
+      // updateHostContainer 在react-dom 的环境下是一个空的方法
       updateHostContainer(workInProgress);
       break;
     }
