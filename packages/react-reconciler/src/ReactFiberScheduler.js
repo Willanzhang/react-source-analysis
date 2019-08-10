@@ -878,6 +878,12 @@ function resetChildExpirationTime(
   workInProgress.childExpirationTime = newChildExpirationTime;
 }
 
+// 建立 fiber节点 的effect链表
+// fiber节点的 firstEffect 和 lastEffect 形成一个需要更新的节点链表（firstEffect 和 lastEffect都是fiber）
+// effect 记录节点信息 以及要更新 的信息 updateQueue 以及effectTag(操作类型)
+// effect 链表上只会记录有sideffect(有改变) 的节点 
+// !!!深度优先递归 一直将 链表 连接到 RootFiber节点上， 
+// !!!在 RootFiber通过 firstEffect  和 lastEffect 形成 整棵树的 effect链表（串联effect 方便进行节点更新）
 function completeUnitOfWork(workInProgress: Fiber): Fiber | null {
   // Attempt to complete the current unit of work, then move to the
   // next sibling. If there are no more siblings, return to the
@@ -891,17 +897,20 @@ function completeUnitOfWork(workInProgress: Fiber): Fiber | null {
     if (__DEV__) {
       ReactCurrentFiber.setCurrentFiber(workInProgress);
     }
-
+    // 获取父节点 和兄弟节点
     const returnFiber = workInProgress.return;
     const siblingFiber = workInProgress.sibling;
 
+    // Incomplete 就是出现错误然后被捕获时添加的tag
+    // 是否是抛出过错的节点 执行不同的操作 
+    // 执行 completeWork 或 unwindWork
     if ((workInProgress.effectTag & Incomplete) === NoEffect) {
-      // This fiber completed.
+      // This fiber completed. 无错误
       if (enableProfilerTimer) {
         if (workInProgress.mode & ProfileMode) {
           startProfilerTimer(workInProgress);
         }
-
+        // 调用 completeWork 后就会完成这个节点的更新
         nextUnitOfWork = completeWork(
           current,
           workInProgress,
@@ -928,12 +937,18 @@ function completeUnitOfWork(workInProgress: Fiber): Fiber | null {
       if (
         returnFiber !== null &&
         // Do not append effects to parents if a sibling failed to complete
-        (returnFiber.effectTag & Incomplete) === NoEffect
+        (returnFiber.effectTag & Incomplete) === NoEffect // 对捕获报错的Incomplete节点唯一可以具有的sideEffect 就是didCapture  因为对于有错误的节点时不会正常渲染子节点的
       ) {
+        // 构造所有sideEffect 的节点的 链表
+        // 用于在commitWork的使用 对这些有sideEffect的节点进行一个commit的操作
         // Append all the effects of the subtree and this fiber onto the effect
         // list of the parent. The completion order of the children affects the
         // side-effect order.
-        if (returnFiber.firstEffect === null) {
+        
+        // 这块的操作
+        // 要把当前节点effect链表 挂载到父节点的 effect单项链表的最后
+        if (returnFiber.firstEffect === null) { 
+          // 父节点没有记录任何一个有sideEffect的子节点
           returnFiber.firstEffect = workInProgress.firstEffect;
         }
         if (workInProgress.lastEffect !== null) {
@@ -949,13 +964,22 @@ function completeUnitOfWork(workInProgress: Fiber): Fiber | null {
         // to schedule our own side-effect on our own list because if end up
         // reusing children we'll schedule this effect onto itself since we're
         // at the end.
+
+        // 当前这个节点可能是有副作用的 （有要执行的操作）
         const effectTag = workInProgress.effectTag;
         // Skip both NoWork and PerformedWork tags when creating the effect list.
         // PerformedWork effect is read by React DevTools but shouldn't be committed.
+        
+        // 如果仅仅只有PerformedWork 说明他不是一个有sideEffect 的节点
         if (effectTag > PerformedWork) {
+          // 若是有sideEffect的节点
+          // 添加到returnFiber effect链表上
           if (returnFiber.lastEffect !== null) {
+            // 父节点上添加过 effect
             returnFiber.lastEffect.nextEffect = workInProgress;
           } else {
+            // returnFiber.lastEffect = == null
+            // 父节点上第一次 添加 effect
             returnFiber.firstEffect = workInProgress;
           }
           returnFiber.lastEffect = workInProgress;
@@ -968,9 +992,13 @@ function completeUnitOfWork(workInProgress: Fiber): Fiber | null {
 
       if (siblingFiber !== null) {
         // If there is more work to do in this returnFiber, do that next.
+        // 有兄弟节点返回 
+        // 暂： 返回后会在workLoop中继续循环 再执行同样的操作，建立另外一个分支effect链表，最后在RootFiber汇总，形成最后的effect链表）
         return siblingFiber;
       } else if (returnFiber !== null) {
         // If there's no more work in this returnFiber. Complete the returnFiber.
+        // 如果没有兄弟节点 就执行retrunFiber 的 comlepteUnitOfWork
+        // 循环向上一直找到 RootFiber 建立effect链表
         workInProgress = returnFiber;
         continue;
       } else {
