@@ -796,9 +796,10 @@ function commitRoot(root: FiberRoot, finishedWork: Fiber): void {
   }
 }
 
+// 重置childExpirationTime
 function resetChildExpirationTime(
   workInProgress: Fiber,
-  renderTime: ExpirationTime,
+  renderTime: ExpirationTime, // 当前正在进行更新的优先级 的expirationTime
 ) {
   if (renderTime !== Never && workInProgress.childExpirationTime === Never) {
     // The children of this component are hidden. Don't bubble their
@@ -854,6 +855,9 @@ function resetChildExpirationTime(
     workInProgress.treeBaseDuration = treeBaseDuration;
   } else {
     let child = workInProgress.child;
+    // 因为completeUnitOfWork是从下到上的 处理的，
+    // 所以 所有的节点都会从下到上给它 赋值childExpirtaionTime
+    // 通过循环 在子节点中寻找优先级最高的 expirationTime作为它的childExpirtaionTime
     while (child !== null) {
       const childUpdateExpirationTime = child.expirationTime;
       const childChildExpirationTime = child.childExpirationTime;
@@ -929,6 +933,8 @@ function completeUnitOfWork(workInProgress: Fiber): Fiber | null {
         );
       }
       stopWorkTimer(workInProgress);
+      // 重置 childExpirationTime
+      // workInProgress.childExpirationTime = newChildExpirationTime;
       resetChildExpirationTime(workInProgress, nextRenderExpirationTime);
       if (__DEV__) {
         ReactCurrentFiber.resetCurrentFiber();
