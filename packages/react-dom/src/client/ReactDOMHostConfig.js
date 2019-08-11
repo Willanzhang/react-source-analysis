@@ -81,6 +81,7 @@ const STYLE = 'style';
 let eventsEnabled: ?boolean = null;
 let selectionInformation: ?mixed = null;
 
+// 针对可以自动聚焦的节点，看时候需要聚焦
 function shouldAutoFocusHostComponent(type: string, props: Props): boolean {
   switch (type) {
     case 'button':
@@ -162,6 +163,7 @@ export function resetAfterCommit(containerInfo: Container): void {
   eventsEnabled = null;
 }
 
+// 创建dom节点的过程
 export function createInstance(
   type: string,
   props: Props,
@@ -189,24 +191,29 @@ export function createInstance(
   } else {
     parentNamespace = ((hostContext: any): HostContextProd);
   }
+  // 这里是实际返回对应类型节点的地方
   const domElement: Instance = createElement(
     type,
     props,
     rootContainerInstance,
     parentNamespace,
   );
+  // 就是在dom节点上添加一个 随机的key 将整个fiber对象赋值上去， 可以用来在dom上获取 fiber
   precacheFiberNode(internalInstanceHandle, domElement);
+  // 在dom节点上 添加一个随机key  将props赋值上去， 方便以后取用
   updateFiberProps(domElement, props);
   return domElement;
 }
 
+// 插入子节点
 export function appendInitialChild(
   parentInstance: Instance,
   child: Instance | TextInstance,
 ): void {
   parentInstance.appendChild(child);
 }
-
+// 初始化一些事件的监听，以及通过 props设置dom的attributes 
+// 返回是否需要聚焦
 export function finalizeInitialChildren(
   domElement: Instance,
   type: string,
@@ -214,7 +221,9 @@ export function finalizeInitialChildren(
   rootContainerInstance: Container,
   hostContext: HostContext,
 ): boolean {
+  // 初始化一些事件的监听，以及通过 props设置dom的attributes 
   setInitialProperties(domElement, type, props, rootContainerInstance);
+  // 针对可以自动聚焦的节点，看时候需要聚焦 其他都是false
   return shouldAutoFocusHostComponent(type, props);
 }
 

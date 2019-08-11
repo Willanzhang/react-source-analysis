@@ -255,6 +255,7 @@ export function trapClickOnNonInteractiveElement(node: HTMLElement) {
   node.onclick = noop;
 }
 
+// 在dom上根据props 将属性都赋值
 function setInitialDOMProperties(
   tag: string,
   domElement: Element,
@@ -276,8 +277,10 @@ function setInitialDOMProperties(
         }
       }
       // Relies on `updateStylesByID` not mutating `styleUpdates`.
+      // 在dom 上设置style  设置它的样式
       CSSPropertyOperations.setValueForStyles(domElement, nextProp);
     } else if (propKey === DANGEROUSLY_SET_INNER_HTML) {
+      // 是dangerouslySetInnerHTML 属性的话
       const nextHtml = nextProp ? nextProp[HTML] : undefined;
       if (nextHtml != null) {
         setInnerHTML(domElement, nextHtml);
@@ -313,6 +316,7 @@ function setInitialDOMProperties(
         ensureListeningTo(rootContainerElement, propKey);
       }
     } else if (nextProp != null) {
+      // 不是特殊的props的话
       DOMPropertyOperations.setValueForProperty(
         domElement,
         propKey,
@@ -350,6 +354,7 @@ function updateDOMProperties(
   }
 }
 
+// 根据 类型返回 html svg xml  对应的 节点
 export function createElement(
   type: string,
   props: Object,
@@ -364,6 +369,7 @@ export function createElement(
     rootContainerElement,
   );
   let domElement: Element;
+  // namespaceURI 区分html 节点 svg节点 xml节点
   let namespaceURI = parentNamespace;
   if (namespaceURI === HTML_NAMESPACE) {
     namespaceURI = getIntrinsicNamespace(type);
@@ -444,6 +450,7 @@ export function createTextNode(
   );
 }
 
+// 初始化一些事件的监听，以及通过 props设置dom的attributes 
 export function setInitialProperties(
   domElement: Element,
   tag: string,
@@ -470,9 +477,12 @@ export function setInitialProperties(
 
   // TODO: Make sure that we check isMounted before firing any of these events.
   let props: Object;
+
+  // 绑定事件
   switch (tag) {
     case 'iframe':
     case 'object':
+      // 绑定事件
       trapBubbledEvent(TOP_LOAD, domElement);
       props = rawProps;
       break;
@@ -505,8 +515,11 @@ export function setInitialProperties(
       props = rawProps;
       break;
     case 'input':
+      // 在input元素上挂载了三个属性
       ReactDOMInput.initWrapperState(domElement, rawProps);
+      // 整理props
       props = ReactDOMInput.getHostProps(domElement, rawProps);
+      // 绑定事件
       trapBubbledEvent(TOP_INVALID, domElement);
       // For controlled components we always need to ensure we're listening
       // to onChange. Even if there is no listener.
@@ -536,8 +549,11 @@ export function setInitialProperties(
       props = rawProps;
   }
 
+  // 验证props  是否能包含children props， props是否是对象啥的，
+  // 不通过便报错
   assertValidProps(tag, props);
 
+  // 在dom上根据props 将属性 设置 attribute
   setInitialDOMProperties(
     tag,
     domElement,

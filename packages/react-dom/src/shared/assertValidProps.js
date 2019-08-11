@@ -20,12 +20,14 @@ if (__DEV__) {
   ReactDebugCurrentFrame = ReactSharedInternals.ReactDebugCurrentFrame;
 }
 
+// 验证props  是否能包含children props， props是否是对象啥的， 
 function assertValidProps(tag: string, props: ?Object) {
   if (!props) {
     return;
   }
   // Note the use of `==` which checks for null or undefined.
   if (voidElementTags[tag]) {
+    // voidElementTags 不可能有children 这个 props
     invariant(
       props.children == null && props.dangerouslySetInnerHTML == null,
       '%s is a void element tag and must neither have `children` nor ' +

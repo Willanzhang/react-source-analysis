@@ -56,6 +56,7 @@ function isControlled(props) {
  * See http://www.w3.org/TR/2012/WD-html5-20121025/the-input-element.html
  */
 
+// 整理props
 export function getHostProps(element: Element, props: Object) {
   const node = ((element: any): InputWithWrapperState);
   const checked = props.checked;
@@ -70,6 +71,7 @@ export function getHostProps(element: Element, props: Object) {
   return hostProps;
 }
 
+// 在input元素上挂载了三个属性
 export function initWrapperState(element: Element, props: Object) {
   if (__DEV__) {
     ReactControlledValuePropTypes.checkPropTypes('input', props);
@@ -115,13 +117,14 @@ export function initWrapperState(element: Element, props: Object) {
   const node = ((element: any): InputWithWrapperState);
   const defaultValue = props.defaultValue == null ? '' : props.defaultValue;
 
+  // 挂载了三个属性
   node._wrapperState = {
     initialChecked:
       props.checked != null ? props.checked : props.defaultChecked,
     initialValue: getToStringValue(
       props.value != null ? props.value : defaultValue,
     ),
-    controlled: isControlled(props),
+    controlled: isControlled(props), // 是否是控制型 input  radio或者checkbox
   };
 }
 

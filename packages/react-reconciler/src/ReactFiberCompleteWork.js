@@ -94,6 +94,9 @@ let updateHostText;
 if (supportsMutation) {
   // Mutation mode Mutation：突变
 
+  // 只会将子树中的 !第一层dom节点 插入到它的dom(parent) 下
+  // 因为会对每个dom节点都会进行 这个操作， 每个节点都负责自己下面第一层，这样会形成一个完整的dom树
+  // 应该也是深度优先， 从最侧边的叶子节点开始
   appendAllChildren = function(
     parent: Instance,
     workInProgress: Fiber,
@@ -104,7 +107,9 @@ if (supportsMutation) {
     // children to find all the terminal nodes.
     let node = workInProgress.child;
     while (node !== null) {
+      // 找到第一层HostComponent并且执行append,并不会嵌套append
       if (node.tag === HostComponent || node.tag === HostText) {
+        // 直接插入子节点
         appendInitialChild(parent, node.stateNode);
       } else if (node.tag === HostPortal) {
         // If we have a portal child, then we don't want to traverse
@@ -580,6 +585,7 @@ function completeWork(
       const rootContainerInstance = getRootHostContainer();
       const type = workInProgress.type;
       if (current !== null && workInProgress.stateNode != null) {
+        // 非第一次渲染 和挂载
         updateHostComponent(
           current,
           workInProgress,
@@ -623,6 +629,7 @@ function completeWork(
             markUpdate(workInProgress);
           }
         } else {
+          // 创建dom节点的过程
           let instance = createInstance(
             type,
             newProps,
@@ -631,12 +638,17 @@ function completeWork(
             workInProgress,
           );
 
+          // 对于第一次渲染的情况 构建当前节点第一层子树
           appendAllChildren(instance, workInProgress, false, false);
 
           // Certain renderers require commit-time effects for initial mount.
           // (eg DOM renderer supports auto-focus for certain elements).
           // Make sure such renderers get scheduled for later work.
           if (
+            // 如果这个节点上面有任何的事件监听 需要初始化整个react的事件体系
+            // finalize 完成
+            // 根据props设置dom 的attrubutes  进行事件监听
+            // 返回是否需要聚焦
             finalizeInitialChildren(
               instance,
               type,
@@ -645,6 +657,8 @@ function completeWork(
               currentHostContext,
             )
           ) {
+            // markUpdate 就是在这个workInProgress 的sideEffectTag增加一个update
+            // 告诉commit 的时候对节点进行一定操作
             markUpdate(workInProgress);
           }
           workInProgress.stateNode = instance;
