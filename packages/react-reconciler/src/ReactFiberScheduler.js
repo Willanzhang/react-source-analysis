@@ -906,7 +906,7 @@ function completeUnitOfWork(workInProgress: Fiber): Fiber | null {
     const siblingFiber = workInProgress.sibling;
 
     // Incomplete 就是出现错误然后被捕获时添加的tag
-    // 是否是抛出过错的节点 执行不同的操作 
+    // 是否是抛出报错的节点 执行不同的操作 
     // 执行 completeWork 或 unwindWork
     if ((workInProgress.effectTag & Incomplete) === NoEffect) {
       // This fiber completed. 无错误
@@ -1316,6 +1316,7 @@ function renderRoot(
             thrownValue,
             nextRenderExpirationTime,
           );
+          // 节点报错了 就直接执行completeUnitOfWork 那时候 自然会走 unwindWork 方法
           nextUnitOfWork = completeUnitOfWork(sourceFiber);
           continue;
         }

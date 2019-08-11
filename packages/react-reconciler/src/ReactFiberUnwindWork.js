@@ -322,15 +322,25 @@ function throwException(
   // We didn't find a boundary that could handle this type of exception. Start
   // over and traverse parent path again, this time treating the exception
   // as an error.
-  renderDidError();
+  renderDidError(); 
+  // nextRenderDidError=true
+
+  // createCapturedValue 返回 
+  // {
+  //   value,
+  //   source,
+  //   stack: getStackByFiberInDevAndProd(source), // 错误具体信息 文件地址， 行等
+  // };
   value = createCapturedValue(value, sourceFiber);
   let workInProgress = returnFiber;
   do {
     switch (workInProgress.tag) {
       case HostRoot: {
+        // 在没有错误处理函数的情况下， 最后会通过在rootFiber节点上创建 sideEffectTag 是capture的更新进行处理
         const errorInfo = value;
         workInProgress.effectTag |= ShouldCapture;
         workInProgress.expirationTime = renderExpirationTime;
+        // createRootErrorUpdate 里面也是调用的crateUpdate 只是它的effectTag是captureUpdate
         const update = createRootErrorUpdate(
           workInProgress,
           errorInfo,
@@ -344,7 +354,7 @@ function throwException(
         const errorInfo = value;
         const ctor = workInProgress.type;
         const instance = workInProgress.stateNode;
-        if (
+        if (// 当是ClassComponent存在 错误处理函数的时候
           (workInProgress.effectTag & DidCapture) === NoEffect &&
           (typeof ctor.getDerivedStateFromError === 'function' ||
             (instance !== null &&
@@ -354,6 +364,9 @@ function throwException(
           workInProgress.effectTag |= ShouldCapture;
           workInProgress.expirationTime = renderExpirationTime;
           // Schedule the error boundary to re-render using updated state
+          // boundary：边界、范围
+          // 调度 错误的boundary 根据update 重新渲染  里面有怎么调用错误处理函数的过程
+          // 里面也是调用的crateUpdate 只是它的effectTag是captureUpdate
           const update = createClassErrorUpdate(
             workInProgress,
             errorInfo,
