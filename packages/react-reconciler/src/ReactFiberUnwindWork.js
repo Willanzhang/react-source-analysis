@@ -141,6 +141,7 @@ function createClassErrorUpdate(
   return update;
 }
 
+// 抛出错误
 function throwException(
   root: FiberRoot,
   returnFiber: Fiber,
@@ -153,7 +154,7 @@ function throwException(
   // Its effect list is no longer valid.
   sourceFiber.firstEffect = sourceFiber.lastEffect = null;
 
-  if (
+  if ( // 和 supense 相关的代码 暂时不看
     value !== null &&
     typeof value === 'object' &&
     typeof value.then === 'function'

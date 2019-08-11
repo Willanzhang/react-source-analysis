@@ -445,6 +445,8 @@ export function createTextNode(
   text: string,
   rootContainerElement: Element | Document,
 ): Text {
+  // rootContainerElement 是FiberRoot节点的containerInfo，render方法接收的第二个参数 id='root'
+  // getOwnerDocumentFromRootContainer(rootContainerElement)获取 document 兼容多平台
   return getOwnerDocumentFromRootContainer(rootContainerElement).createTextNode(
     text,
   );

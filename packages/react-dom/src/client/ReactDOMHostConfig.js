@@ -278,7 +278,7 @@ export function shouldSetTextContent(type: string, props: Props): boolean {
 export function shouldDeprioritizeSubtree(type: string, props: Props): boolean {
   return !!props.hidden;
 }
-
+// 创建textNode实例 dom
 export function createTextInstance(
   text: string,
   rootContainerInstance: Container,
@@ -290,6 +290,7 @@ export function createTextInstance(
     validateDOMNesting(null, text, hostContextDev.ancestorInfo);
   }
   const textNode: TextInstance = createTextNode(text, rootContainerInstance);
+  // 在 textNode 添加一个属性 它的值是internalInstanceHandle
   precacheFiberNode(internalInstanceHandle, textNode);
   return textNode;
 }

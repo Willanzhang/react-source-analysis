@@ -1269,7 +1269,9 @@ function renderRoot(
     } catch (thrownValue) {
       if (nextUnitOfWork === null) {
         // This is a fatal error.
+        // 正常情况是不可能出现 nextUnitOfWork是 null 
         didFatal = true;
+        // 抛出一个无法处理的错误
         onUncaughtError(thrownValue);
       } else {
         if (__DEV__) {
@@ -1296,6 +1298,7 @@ function renderRoot(
         const sourceFiber: Fiber = nextUnitOfWork;
         let returnFiber = sourceFiber.return;
         if (returnFiber === null) {
+          // 在跟新rootFiber 的时候报错说明是 是源码级的错误
           // This is the root. The root could capture its own errors. However,
           // we don't know if it errors before or after we pushed the host
           // context. This information is needed to avoid a stack mismatch.
@@ -1305,6 +1308,7 @@ function renderRoot(
           didFatal = true;
           onUncaughtError(thrownValue);
         } else {
+          // 常规抛出错误
           throwException(
             root,
             returnFiber,
@@ -2439,6 +2443,7 @@ function onUncaughtError(error: mixed) {
   );
   // Unschedule this root so we don't work on it again until there's
   // another update.
+  // 直接将剩下的任务都不执行了
   nextFlushedRoot.expirationTime = NoWork;
   if (!hasUnhandledError) {
     hasUnhandledError = true;
