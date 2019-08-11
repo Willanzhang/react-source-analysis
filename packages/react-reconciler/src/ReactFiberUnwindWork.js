@@ -324,7 +324,6 @@ function throwException(
   // as an error.
   renderDidError(); 
   // nextRenderDidError=true
-
   // createCapturedValue 返回 
   // {
   //   value,
