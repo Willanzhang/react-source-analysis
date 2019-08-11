@@ -162,6 +162,8 @@ if (supportsMutation) {
     // TODO: Experiencing an error where oldProps is null. Suggests a host
     // component is hitting the resume path. Figure out why. Possibly
     // related to `hidden`.
+    // 准备更新... diff properties(比较新老props) 
+    // 返回updatePayload = [key1,value1, key2, value2]
     const updatePayload = prepareUpdate(
       instance,
       type,
@@ -175,6 +177,7 @@ if (supportsMutation) {
     // If the update payload indicates that there is a change or if there
     // is a new ref we mark this as an update. All the work is done in commitWork.
     if (updatePayload) {
+      // 根据是否有updatePayload 标记这个fiber   添加update 这个sideEffectTag
       markUpdate(workInProgress);
     }
   };

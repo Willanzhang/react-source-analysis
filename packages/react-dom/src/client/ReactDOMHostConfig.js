@@ -226,7 +226,8 @@ export function finalizeInitialChildren(
   // 针对可以自动聚焦的节点，看时候需要聚焦 其他都是false
   return shouldAutoFocusHostComponent(type, props);
 }
-
+// 准备更新... diff properties(比较新老props)
+// 返回updatePayload = [key1,value1, key2, value2]
 export function prepareUpdate(
   domElement: Instance,
   type: string,
@@ -250,6 +251,7 @@ export function prepareUpdate(
       validateDOMNesting(null, string, ownAncestorInfo);
     }
   }
+  // 比较 各个props 返回 updatePayload
   return diffProperties(
     domElement,
     type,

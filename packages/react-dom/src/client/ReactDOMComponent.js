@@ -591,6 +591,8 @@ export function setInitialProperties(
 }
 
 // Calculate the diff between the two objects.
+// diff properties(比较新老props)
+// 返回updatePayload = [key1,value1, key2, value2]
 export function diffProperties(
   domElement: Element,
   tag: string,
@@ -640,16 +642,17 @@ export function diffProperties(
       break;
   }
 
+  // 验证props  是否能包含children props， props是否是对象啥的， 
   assertValidProps(tag, nextProps);
 
   let propKey;
   let styleName;
   let styleUpdates = null;
   for (propKey in lastProps) {
-    if (
-      nextProps.hasOwnProperty(propKey) ||
-      !lastProps.hasOwnProperty(propKey) ||
-      lastProps[propKey] == null
+    if ( // 如果不符合这个判断那么就删除  符合这个条件就是说明不需要删除 也就不需要记录在queue中
+      nextProps.hasOwnProperty(propKey) || // 如果新的也有
+      !lastProps.hasOwnProperty(propKey) || // 若果老的没有
+      lastProps[propKey] == null // 如果老的为null
     ) {
       continue;
     }
@@ -688,7 +691,7 @@ export function diffProperties(
   for (propKey in nextProps) {
     const nextProp = nextProps[propKey];
     const lastProp = lastProps != null ? lastProps[propKey] : undefined;
-    if (
+    if ( // 这个判断就是要判断propKey 是真实有用的才会向下执行程序
       !nextProps.hasOwnProperty(propKey) ||
       nextProp === lastProp ||
       (nextProp == null && lastProp == null)
@@ -704,12 +707,14 @@ export function diffProperties(
         }
       }
       if (lastProp) {
+        // 下面两个循环就是比较新老props的style的key是否有变化
         // Unset styles on `lastProp` but not on `nextProp`.
         for (styleName in lastProp) {
           if (
             lastProp.hasOwnProperty(styleName) &&
             (!nextProp || !nextProp.hasOwnProperty(styleName))
           ) {
+            //  新的props style 没有这些样式，便清空
             if (!styleUpdates) {
               styleUpdates = {};
             }
@@ -739,6 +744,7 @@ export function diffProperties(
         styleUpdates = nextProp;
       }
     } else if (propKey === DANGEROUSLY_SET_INNER_HTML) {
+      // 再比较 props的dangerouslySetInnerHTML 属性的HTML（__html）属性是否有变化
       const nextHtml = nextProp ? nextProp[HTML] : undefined;
       const lastHtml = lastProp ? lastProp[HTML] : undefined;
       if (nextHtml != null) {
@@ -750,10 +756,12 @@ export function diffProperties(
         // inserted already.
       }
     } else if (propKey === CHILDREN) {
+      // 判断children
       if (
         lastProp !== nextProp &&
         (typeof nextProp === 'string' || typeof nextProp === 'number')
       ) {
+        // 只判断string 的内容
         (updatePayload = updatePayload || []).push(propKey, '' + nextProp);
       }
     } else if (
@@ -778,9 +786,11 @@ export function diffProperties(
     } else {
       // For any other property we always add it to the queue and then we
       // filter it out using the whitelist during the commit.
+      // 上面都没有找到 说明这个属性是新增的 直接push 就好
       (updatePayload = updatePayload || []).push(propKey, nextProp);
     }
   }
+  //  把样式更新的 也加入 updatePayload中
   if (styleUpdates) {
     (updatePayload = updatePayload || []).push(STYLE, styleUpdates);
   }
