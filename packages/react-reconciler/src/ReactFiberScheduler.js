@@ -1056,12 +1056,16 @@ function completeUnitOfWork(workInProgress: Fiber): Fiber | null {
         // back here again.
         // Since we're restarting, remove anything that is not a host effect
         // from the effect tag.
+        // 保留所有非 shouldCapture 和 Incomplete 的 effectTag
         next.effectTag &= HostEffectMask;
         return next;
       }
 
       if (returnFiber !== null) {
         // Mark the parent fiber as incomplete and clear its effect list.
+        // 子fiber 中报错，它父组件也会别带上 Incomplete effectTag 也会走unwindWork
+        // 然后判断父组件 是否有处理错误的能力， 没有的话是 Incomplete 有则为 shouldCapture
+        // 然后找到有能力的， 中间都是 因为都带了Incomplete 所以都是走的unwindWork
         returnFiber.firstEffect = returnFiber.lastEffect = null;
         returnFiber.effectTag |= Incomplete;
       }

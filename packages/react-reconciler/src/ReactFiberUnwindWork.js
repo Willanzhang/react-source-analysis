@@ -387,6 +387,12 @@ function unwindWork(
   workInProgress: Fiber,
   renderExpirationTime: ExpirationTime,
 ) {
+  // 也需要跟根据组件类型 进行类似completeWork的操作， 1pop context 2 HostComponent更新创建 3 事件监听
+  // 但是和 completeWork最大区别是 会判断ShouldCapture 
+  // 如果有ShouldCapture 会将它去掉 增加 DidCapture
+  // return 的也有区别 
+  // completeWork return的都是workInProgress 
+  // unwindWork 判断是return null  还是 return workInProgress
   switch (workInProgress.tag) {
     case ClassComponent: {
       const Component = workInProgress.type;

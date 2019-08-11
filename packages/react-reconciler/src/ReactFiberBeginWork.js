@@ -159,6 +159,7 @@ export function reconcileChildren(
   }
 }
 
+// 强制调和子节点
 function forceUnmountCurrentAndReconcile(
   current: Fiber,
   workInProgress: Fiber,
@@ -176,7 +177,7 @@ function forceUnmountCurrentAndReconcile(
   workInProgress.child = reconcileChildFibers(
     workInProgress,
     current.child,
-    null,
+    null, // 第一次强制清空子树
     renderExpirationTime,
   );
   // In the second pass, we mount the new children. The trick here is that we
@@ -186,7 +187,7 @@ function forceUnmountCurrentAndReconcile(
   workInProgress.child = reconcileChildFibers(
     workInProgress,
     null,
-    nextChildren,
+    nextChildren, // 这里children是 错误处理过后的新的children  就不需要通过key去对比等流程
     renderExpirationTime,
   );
 }
@@ -626,6 +627,7 @@ function finishClassComponent(
     // the existing children. Conceptually, the normal children and the children
     // that are shown on error are two different sets, so we shouldn't reuse
     // normal children even if their identities match.
+    // 组件在更新的过程中， 捕获到错误 app要渲染错误
     forceUnmountCurrentAndReconcile(
       current,
       workInProgress,
@@ -1612,7 +1614,7 @@ function beginWork(
       // This fiber does not have any pending work. Bailout without entering
       // the begin phase. There's still some bookkeeping we that needs to be done
       // in this optimized path, mostly pushing stuff onto the stack.
-      // 下面和compontents相关
+      // 下面和context相关
       switch (workInProgress.tag) {
         case HostRoot:
           pushHostRootContext(workInProgress);
