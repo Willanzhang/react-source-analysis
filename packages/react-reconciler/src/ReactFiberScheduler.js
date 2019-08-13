@@ -523,7 +523,7 @@ function markLegacyErrorBoundaryAsFailed(instance: mixed) {
 }
 
 function commitRoot(root: FiberRoot, finishedWork: Fiber): void {
-  isWorking = true;
+  isWorking = true; // 在renderRoot 的过程中也会设置为true   isWorking 代表这正在进行更新的操作
   isCommitting = true;
   startCommitTimer();
 
@@ -533,6 +533,7 @@ function commitRoot(root: FiberRoot, finishedWork: Fiber): void {
       'related to the return field. This error is likely caused by a bug ' +
       'in React. Please file an issue.',
   );
+
   const committedExpirationTime = root.pendingCommitExpirationTime;
   invariant(
     committedExpirationTime !== NoWork,
@@ -545,7 +546,8 @@ function commitRoot(root: FiberRoot, finishedWork: Fiber): void {
   // about to commit. This needs to happen before calling the lifecycles, since
   // they may schedule additional updates.
   const updateExpirationTimeBeforeCommit = finishedWork.expirationTime;
-  const childExpirationTimeBeforeCommit = finishedWork.childExpirationTime;
+  const childExpirationTimeBeforeCommit = finishedWork.childExpirationTime; // childExpirationTime 所有子树中优先级最高的任务
+  // 根据rootFiber的 expirationTime 和 childExpirationTime 标记这个 commit 的优先级
   const earliestRemainingTimeBeforeCommit =
     updateExpirationTimeBeforeCommit === NoWork ||
     (childExpirationTimeBeforeCommit !== NoWork &&
@@ -567,6 +569,7 @@ function commitRoot(root: FiberRoot, finishedWork: Fiber): void {
 
   let firstEffect;
   if (finishedWork.effectTag > PerformedWork) {
+    // 说明这个 finishedWork 自己也是有 更新过的  要将它自己也插入到 更新的链表中
     // A fiber's effect list consists only of its children, not itself. So if
     // the root has an effect, we need to add it to the end of the list. The
     // resulting list is the set that would belong to the root's parent, if
@@ -587,10 +590,13 @@ function commitRoot(root: FiberRoot, finishedWork: Fiber): void {
   // Invoke instances of getSnapshotBeforeUpdate before mutation.
   nextEffect = firstEffect;
   startCommitSnapshotEffectsTimer();
+  // 第一个循环
   while (nextEffect !== null) {
     let didError = false;
     let error;
     if (__DEV__) {
+      // 这三个循环是整个课 唯一会将 dev 代码的地方
+      // invokeGuardedCallback 可以帮我们在开发过程中收集错误  是为了防止与浏览器有关的错误发生
       invokeGuardedCallback(null, commitBeforeMutationLifecycles, null);
       if (hasCaughtError()) {
         didError = true;
@@ -598,6 +604,7 @@ function commitRoot(root: FiberRoot, finishedWork: Fiber): void {
       }
     } else {
       try {
+        // commitBeforeMutationLifecycles 唯一的作用是调用 ClassComponent 中可能会存在的 getSlapShotBeforeUpdate? 这么一个生命周期方法
         commitBeforeMutationLifecycles();
       } catch (e) {
         didError = true;
@@ -630,6 +637,7 @@ function commitRoot(root: FiberRoot, finishedWork: Fiber): void {
   // ref unmounts.
   nextEffect = firstEffect;
   startCommitHostEffectsTimer();
+  // 第二个循环
   while (nextEffect !== null) {
     let didError = false;
     let error;
@@ -641,6 +649,7 @@ function commitRoot(root: FiberRoot, finishedWork: Fiber): void {
       }
     } else {
       try {
+        // commitAllHostEffects 主要操作 需要对dom节点做的内容
         commitAllHostEffects();
       } catch (e) {
         didError = true;
@@ -676,6 +685,7 @@ function commitRoot(root: FiberRoot, finishedWork: Fiber): void {
   // This pass also triggers any renderer-specific initial effects.
   nextEffect = firstEffect;
   startCommitLifeCyclesTimer();
+  // 第三个循环
   while (nextEffect !== null) {
     let didError = false;
     let error;
@@ -693,6 +703,7 @@ function commitRoot(root: FiberRoot, finishedWork: Fiber): void {
       }
     } else {
       try {
+        // commitAllLifeCycles 和各种组件， 和所有各种东西的生命周期的方法 都会在这里面被调用
         commitAllLifeCycles(root, committedExpirationTime);
       } catch (e) {
         didError = true;
@@ -712,15 +723,20 @@ function commitRoot(root: FiberRoot, finishedWork: Fiber): void {
     }
   }
 
+  // 三个循环调用完之后  就算commit 阶段已经完成 设置全局变量为false
   isCommitting = false;
   isWorking = false;
   stopCommitLifeCyclesTimer();
   stopCommitTimer();
+  // 调用 onCommitRoot
   onCommitRoot(finishedWork.stateNode);
   if (__DEV__ && ReactFiberInstrumentation.debugTool) {
     ReactFiberInstrumentation.debugTool.onCommitWork(finishedWork);
   }
 
+  // 这里又会执行一次 关于expirationTime 的判断 为什么呢
+  // 因为在执行 ClassComponent 的生命周期方法的时候 可能会产生新的更新， childExpiration 会产生变化
+  // 所以放在后面， 如果 ClassComponent 再进行判断
   const updateExpirationTimeAfterCommit = finishedWork.expirationTime;
   const childExpirationTimeAfterCommit = finishedWork.childExpirationTime;
   const earliestRemainingTimeAfterCommit =
@@ -734,6 +750,8 @@ function commitRoot(root: FiberRoot, finishedWork: Fiber): void {
     // error boundaries.
     legacyErrorBoundariesThatAlreadyFailed = null;
   }
+  // 清掉 finishedWork earliestRemainingTimeAfterCommit 是 finishedWork 包括自己的 expiration 和 childExpirationTime 中相对小的 和 非 NoWork 的expiration
+  // 它会变成 新的 root 的 expirationTime
   onCommit(root, earliestRemainingTimeAfterCommit);
 
   if (enableSchedulerTracing) {
