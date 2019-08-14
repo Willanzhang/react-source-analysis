@@ -38,6 +38,7 @@ const reporter = {
  * @param {*} context The context to use when calling the function
  * @param {...*} args Arguments for function
  */
+// 错误处理函数
 export function invokeGuardedCallback<A, B, C, D, E, F, Context>(
   name: string | null,
   func: (a: A, b: B, c: C, d: D, e: E, f: F) => mixed,

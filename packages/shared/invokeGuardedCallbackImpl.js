@@ -58,6 +58,7 @@ if (__DEV__) {
   ) {
     const fakeNode = document.createElement('react');
 
+    // 开发环境使用 主要是为了在开发环境的时候能正确处理 错误流程 不至于被浏览器直接捕获停止了
     const invokeGuardedCallbackDev = function<A, B, C, D, E, F, Context>(
       name: string | null,
       func: (a: A, b: B, c: C, d: D, e: E, f: F) => mixed,
@@ -74,7 +75,7 @@ if (__DEV__) {
       // errors: https://github.com/facebookincubator/create-react-app/issues/3482
       // So we preemptively throw with a better message instead.
       invariant(
-        typeof document !== 'undefined',
+        typeof document !== 'undefined', // document 等于 undefined 就会报错提示
         'The `document` global was defined when React was initialized, but is not ' +
           'defined anymore. This can happen in a test environment if a component ' +
           'schedules an update from an asynchronous callback, but the test has already ' +
@@ -148,17 +149,22 @@ if (__DEV__) {
       let isCrossOriginError = false;
 
       function handleWindowError(event) {
+        // 给 window.error 使用的  捕获错误信息
         error = event.error;
         didSetError = true;
         if (error === null && event.colno === 0 && event.lineno === 0) {
+          // 如果是一个error事件， 是可以拿到报错的地方是在哪一列 哪一行的   
+          // 假如都没有  我们可能引用的是 CDN的reactjs  浏览器对于不同源的 js文件 尝试去获取错误信息， 会禁止获取， react 在这里会提示
           isCrossOriginError = true;
         }
         if (event.defaultPrevented) {
+          // 假如其它地方 已经设置了 window.error事件 并且阻止了 
           // Some other error handler has prevented default.
           // Browsers silence the error report if this happens.
           // We'll remember this to later decide whether to log it or not.
           if (error != null && typeof error === 'object') {
             try {
+              // 会在error 对象添加 变量 决定是否打印
               error._suppressLogging = true;
             } catch (inner) {
               // Ignore.
@@ -168,15 +174,19 @@ if (__DEV__) {
       }
 
       // Create a fake event type.
+      // 声明一个事件
       const evtType = `react-${name ? name : 'invokeguardedcallback'}`;
 
       // Attach our event handlers
       window.addEventListener('error', handleWindowError);
+      // 监听 evtType 
       fakeNode.addEventListener(evtType, callCallback, false);
 
       // Synchronously dispatch our fake event. If the user-provided function
       // errors, it will trigger our global error handler.
+      // 定义事件 evtType
       evt.initEvent(evtType, false, false);
+      // 触发事件 回调用callCallback
       fakeNode.dispatchEvent(evt);
 
       if (windowEventDescriptor) {
