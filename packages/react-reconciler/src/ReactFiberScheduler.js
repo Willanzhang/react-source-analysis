@@ -441,6 +441,7 @@ function commitAllHostEffects() {
   }
 }
 
+// 循环 effect 链表
 function commitBeforeMutationLifecycles() {
   while (nextEffect !== null) {
     if (__DEV__) {
@@ -588,6 +589,7 @@ function commitRoot(root: FiberRoot, finishedWork: Fiber): void {
   prepareForCommit(root.containerInfo);
 
   // Invoke instances of getSnapshotBeforeUpdate before mutation.
+  // 会获取需要第一个处理的effect, 也就是第一个需要我们commit 的 fiber对象
   nextEffect = firstEffect;
   startCommitSnapshotEffectsTimer();
   // 第一个循环
@@ -604,7 +606,8 @@ function commitRoot(root: FiberRoot, finishedWork: Fiber): void {
       }
     } else {
       try {
-        // commitBeforeMutationLifecycles 唯一的作用是调用 ClassComponent 中可能会存在的 getSlapShotBeforeUpdate? 这么一个生命周期方法
+        // commitBeforeMutationLifecycles 唯一的作用是调用 ClassComponent 中可能会存在的 getSnapshotBeforeUpdate 这么一个生命周期方法
+        // getSnapshotBeforeUpdate render() 之前调用 state 已经更新，  典型场景， 获取render之前的dom状态
         commitBeforeMutationLifecycles();
       } catch (e) {
         didError = true;

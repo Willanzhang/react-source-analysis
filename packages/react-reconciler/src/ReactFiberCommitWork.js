@@ -185,6 +185,7 @@ function commitBeforeMutationLifeCycles(
   finishedWork: Fiber,
 ): void {
   switch (finishedWork.tag) {
+    // 只处理的 ClassComponent 其他的都是不处理
     case ClassComponent: {
       if (finishedWork.effectTag & Snapshot) {
         if (current !== null) {
@@ -194,6 +195,7 @@ function commitBeforeMutationLifeCycles(
           const instance = finishedWork.stateNode;
           instance.props = finishedWork.memoizedProps;
           instance.state = finishedWork.memoizedState;
+          // 执行getSnapshotBeforeUpdate 获取快照
           const snapshot = instance.getSnapshotBeforeUpdate(
             prevProps,
             prevState,
@@ -212,6 +214,7 @@ function commitBeforeMutationLifeCycles(
               );
             }
           }
+          // 将快照存储在 instance.__reactInternalSnapshotBeforeUpdate上
           instance.__reactInternalSnapshotBeforeUpdate = snapshot;
           stopPhaseTimer();
         }
