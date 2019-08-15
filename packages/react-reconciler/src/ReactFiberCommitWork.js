@@ -647,8 +647,9 @@ function isHostParent(fiber: Fiber): boolean {
 }
 
 // 我们需要展示给用户的是有个dom树  但是在react 结构中 是一个fiber 树 ，fiber 树中不是每个节点都是dom （能渲染出来的）
-// 这个方法 就是寻找 before 前一个 dom 节点  
-// 它有可能不存在， 比如它是一个单一节点的情况
+// 这个方法 就是寻找 before 
+//（没有兄弟节点 或者父节点就是个HostComponent 直接返回null  插入的时候直接parent.append就行）  它是一个单一节点的情况
+// 要不然 这个循环是找兄弟节点中的第一个dom节点 外面插入使用 parent.insertBefore(node, before)
 function getHostSibling(fiber: Fiber): ?Instance {
   // We're going to search forward into the tree until we find a sibling host
   // node. Unfortunately, if multiple insertions are done in a row we have to
