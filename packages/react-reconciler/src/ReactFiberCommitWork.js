@@ -622,6 +622,7 @@ function commitContainer(finishedWork: Fiber) {
   }
 }
 
+// 获取最近的 宿主（dom）对象 第一个父节点上 的HostComponent
 function getHostParentFiber(fiber: Fiber): Fiber {
   let parent = fiber.return;
   while (parent !== null) {
@@ -645,6 +646,9 @@ function isHostParent(fiber: Fiber): boolean {
   );
 }
 
+// 我们需要展示给用户的是有个dom树  但是在react 结构中 是一个fiber 树 ，fiber 树中不是每个节点都是dom （能渲染出来的）
+// 这个方法 就是寻找 before 前一个 dom 节点  
+// 它有可能不存在， 比如它是一个单一节点的情况
 function getHostSibling(fiber: Fiber): ?Instance {
   // We're going to search forward into the tree until we find a sibling host
   // node. Unfortunately, if multiple insertions are done in a row we have to
@@ -653,8 +657,10 @@ function getHostSibling(fiber: Fiber): ?Instance {
   let node: Fiber = fiber;
   siblings: while (true) {
     // If we didn't find anything, let's try the next sibling.
+    // 没有兄弟节点会进行这个循环
     while (node.sibling === null) {
       if (node.return === null || isHostParent(node.return)) {
+        // 如果遇到的是 root 节点， 或者 父节点右侧的第一个 dom 节点
         // If we pop out of the root or hit the parent the fiber we are the
         // last sibling.
         return null;
@@ -663,18 +669,24 @@ function getHostSibling(fiber: Fiber): ?Instance {
     }
     node.sibling.return = node.return;
     node = node.sibling;
+    // 这个循环是找兄弟节点中的第一个dom节点
     while (node.tag !== HostComponent && node.tag !== HostText) {
       // If it is not host node and, we might have a host node inside it.
       // Try to search down until we find one.
       if (node.effectTag & Placement) {
+        // 如果这个节点也要放置 就没必要再去找了
         // If we don't have a child, try the siblings instead.
         continue siblings;
       }
       // If we don't have a child, try the siblings instead.
       // We also skip portals because they are not part of this host tree.
       if (node.child === null || node.tag === HostPortal) {
+        // 这种情况也是没必要找的
+        // hostPortal  是要 插在那个portal 对应的container里面的 不会作为当前节点的兄弟节点
+        // 没child 没必要找了， 没有兄弟节点
         continue siblings;
       } else {
+        // 如果兄弟节点不是hostComponent 就往下寻找子节点中第一个dom节点 只要能找到， 就都要插在这个节点之后的
         node.child.return = node;
         node = node.child;
       }
@@ -719,6 +731,7 @@ function commitPlacement(finishedWork: Fiber): void {
           'in React. Please file an issue.',
       );
   }
+  // parent 最后都等于他的dom节点
   if (parentFiber.effectTag & ContentReset) {
     // Reset the text content of the parent before doing any insertions
     resetTextContent(parent);
@@ -726,11 +739,15 @@ function commitPlacement(finishedWork: Fiber): void {
     parentFiber.effectTag &= ~ContentReset;
   }
 
+  // before 不是当前节点的前一个节点
+  // 这个方法 就是寻找 before 前一个 dom 节点  
+  // 它有可能不存在， 比如它是一个单一节点的情况
   const before = getHostSibling(finishedWork);
   // We only have the top Fiber that was inserted but we need recurse down its
   // children to find all the terminal nodes.
   let node: Fiber = finishedWork;
   while (true) {
+    // 只有 HostComponent 和 HostText 才有插入 dom 的需要
     if (node.tag === HostComponent || node.tag === HostText) {
       if (before) {
         if (isContainer) {
@@ -750,13 +767,19 @@ function commitPlacement(finishedWork: Fiber): void {
       // down its children. Instead, we'll get insertions from each child in
       // the portal directly.
     } else if (node.child !== null) {
+      // 假如上面都不符合， 可能不是一个能渲染的dom 就要向下去找 找它的child
       node.child.return = node;
       node = node.child;
       continue;
     }
     if (node === finishedWork) {
+      // 假如对 finishedWork 进行操作 就直接return
       return;
     }
+    // 如果对ClassComponent节点进行插入操作
+    // 需要找当前节点的兄弟节点
+    // 因为它是插入 它的子节点， 因为它（ClassComponent && FunctionComponent）还可能返回的是一个数组
+    // 他们都是兄弟节点， 对这些兄弟节点也要进行插入的操作
     while (node.sibling === null) {
       if (node.return === null || node.return === finishedWork) {
         return;
