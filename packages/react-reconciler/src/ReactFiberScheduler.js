@@ -375,6 +375,7 @@ function resetStack() { // 中断低优先级任务
   nextUnitOfWork = null;
 }
 
+// 处理原生对象的 effects
 function commitAllHostEffects() {
   while (nextEffect !== null) {
     if (__DEV__) {
@@ -385,6 +386,7 @@ function commitAllHostEffects() {
     const effectTag = nextEffect.effectTag;
 
     if (effectTag & ContentReset) {
+      // ContentReset 有文字节点 我们需要重置他文字的内容
       commitResetTextContent(nextEffect);
     }
 
@@ -399,7 +401,13 @@ function commitAllHostEffects() {
     // updates, and deletions. To avoid needing to add a case for every
     // possible bitmap value, we remove the secondary effects from the
     // effect tag and switch on that value.
-    let primaryEffectTag = effectTag & (Placement | Update | Deletion);
+
+    // Placement 是这个节点时新插入的
+    // Update 是更新这个节点
+    // Deletion 是删除这个节点
+    let primaryEffectTag = effectTag & (Placement | Update | Deletion); 
+    // effectTag 这样于上 (Placement | Update | Deletion)  
+    // primaryEffectTag 可能是 (Placement | Update | Deletion) 中的一个 或者 多个
     switch (primaryEffectTag) {
       case Placement: {
         commitPlacement(nextEffect);
@@ -412,6 +420,8 @@ function commitAllHostEffects() {
         break;
       }
       case PlacementAndUpdate: {
+        // 有 Placement 也可能有Update
+        // 可能是之前存在的节点 但是和他的兄弟节点进行了位置交换
         // Placement
         commitPlacement(nextEffect);
         // Clear the "placement" from effect tag so that we know that this is inserted, before

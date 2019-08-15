@@ -946,6 +946,7 @@ function commitWork(current: Fiber | null, finishedWork: Fiber): void {
 
 function commitResetTextContent(current: Fiber) {
   if (!supportsMutation) {
+    // 在 react-dom环境 supportsMutation 等于true
     return;
   }
   resetTextContent(current.stateNode);

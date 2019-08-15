@@ -20,6 +20,8 @@ import {TEXT_NODE} from '../shared/HTMLNodeType';
  */
 let setTextContent = function(node: Element, text: string): void {
   if (text) {
+    // 这里的操作 是针对 那种子节点既有 字符节点 又有其他的节点的情况
+    // 防止将所有节点都清除掉
     let firstChild = node.firstChild;
 
     if (
