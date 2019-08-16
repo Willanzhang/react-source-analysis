@@ -907,6 +907,8 @@ function commitWork(current: Fiber | null, finishedWork: Fiber): void {
     case HostComponent: {
       const instance: Instance = finishedWork.stateNode;
       if (instance != null) {
+        // instance !== null 说明这个节点已经创建了
+
         // Commit the work prepared earlier.
         const newProps = finishedWork.memoizedProps;
         // For hydration we reuse the update path but we treat the oldProps
@@ -916,6 +918,7 @@ function commitWork(current: Fiber | null, finishedWork: Fiber): void {
         const type = finishedWork.type;
         // TODO: Type the updateQueue to be specific to host components.
         const updatePayload: null | UpdatePayload = (finishedWork.updateQueue: any);
+        // 在completeWork的时候对于HostComponent 进行新老prop 的对比，  返回了一个UpdatePayload的数组 [key1, value1, key2, value2]
         finishedWork.updateQueue = null;
         if (updatePayload !== null) {
           commitUpdate(

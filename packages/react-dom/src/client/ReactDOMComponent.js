@@ -327,6 +327,7 @@ function setInitialDOMProperties(
   }
 }
 
+// 将需要更新的属性 更新到dom节点上
 function updateDOMProperties(
   domElement: Element,
   updatePayload: Array<any>,
@@ -815,12 +816,15 @@ export function updateProperties(
     nextRawProps.type === 'radio' &&
     nextRawProps.name != null
   ) {
+    // 如果是这些标签 是要单独处理 是否有checked 属性的
     ReactDOMInput.updateChecked(domElement, nextRawProps);
   }
 
+  // isCustomComponent 判断是不是自定义标签
   const wasCustomComponentTag = isCustomComponent(tag, lastRawProps);
   const isCustomComponentTag = isCustomComponent(tag, nextRawProps);
   // Apply the diff.
+  // 将需要更新的属性 更新到dom节点上
   updateDOMProperties(
     domElement,
     updatePayload,
@@ -830,6 +834,7 @@ export function updateProperties(
 
   // TODO: Ensure that an update gets scheduled if any of the special props
   // changed.
+  // 针对 form 表单  要处理 它的 defaultValue  value
   switch (tag) {
     case 'input':
       // Update the wrapper around inputs *after* updating props. This has to
