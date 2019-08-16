@@ -596,12 +596,14 @@ export function commitUpdateQueue<State>(
   // in the queue so that they are rebased and not dropped once we process the
   // queue again at the lower priority.
   if (finishedQueue.firstCapturedUpdate !== null) {
+    // 有关于错误的更新， 将其插入到正常 updateQueue 链表的最后
     // Join the captured update list to the end of the normal list.
     if (finishedQueue.lastUpdate !== null) {
       finishedQueue.lastUpdate.next = finishedQueue.firstCapturedUpdate;
       finishedQueue.lastUpdate = finishedQueue.lastCapturedUpdate;
     }
     // Clear the list of captured updates.
+    // 没有更新的话直接就清除了 无须保留
     finishedQueue.firstCapturedUpdate = finishedQueue.lastCapturedUpdate = null;
   }
 

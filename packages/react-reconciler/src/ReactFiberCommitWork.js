@@ -238,6 +238,7 @@ function commitBeforeMutationLifeCycles(
   }
 }
 
+// 根据不同组件 不同的时期（初次渲染，还是更新）执行不同的生命周期方法
 function commitLifeCycles(
   finishedRoot: FiberRoot,
   current: Fiber | null,
@@ -246,15 +247,18 @@ function commitLifeCycles(
 ): void {
   switch (finishedWork.tag) {
     case ClassComponent: {
+      // 当前要处理的 effect（fiber） 节点是 ClassComponent
       const instance = finishedWork.stateNode;
       if (finishedWork.effectTag & Update) {
         if (current === null) {
+          // 首次渲染时 执行componentDidMount
           startPhaseTimer(finishedWork, 'componentDidMount');
           instance.props = finishedWork.memoizedProps;
           instance.state = finishedWork.memoizedState;
           instance.componentDidMount();
           stopPhaseTimer();
         } else {
+          // 非首次渲染是要执行 componentDidUpdate
           const prevProps = current.memoizedProps;
           const prevState = current.memoizedState;
           startPhaseTimer(finishedWork, 'componentDidUpdate');
@@ -263,7 +267,7 @@ function commitLifeCycles(
           instance.componentDidUpdate(
             prevProps,
             prevState,
-            instance.__reactInternalSnapshotBeforeUpdate,
+            instance.__reactInternalSnapshotBeforeUpdate, //  __reactInternalSnapshotBeforeUpdate 是 commitRoot 第一次循环产生的快照
           );
           stopPhaseTimer();
         }

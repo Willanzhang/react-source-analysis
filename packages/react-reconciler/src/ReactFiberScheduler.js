@@ -475,6 +475,7 @@ function commitBeforeMutationLifecycles() {
   }
 }
 
+// 执行所有生命周期函数 和 effect 中的callback
 function commitAllLifeCycles(
   finishedRoot: FiberRoot,
   committedExpirationTime: ExpirationTime,
@@ -487,10 +488,12 @@ function commitAllLifeCycles(
       ReactStrictModeWarnings.flushPendingDeprecationWarnings();
     }
   }
+  // 递归处理所有的 effect
   while (nextEffect !== null) {
     const effectTag = nextEffect.effectTag;
 
     if (effectTag & (Update | Callback)) {
+      // 有 Updatea 和 Callback 才执行
       recordEffect();
       const current = nextEffect.alternate;
       commitLifeCycles(
