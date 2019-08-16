@@ -424,6 +424,7 @@ export function removeChildFromContainer(
   child: Instance | TextInstance,
 ): void {
   if (container.nodeType === COMMENT_NODE) {
+    // 如果是注释节点 是没有child 的
     (container.parentNode: any).removeChild(child);
   } else {
     container.removeChild(child);

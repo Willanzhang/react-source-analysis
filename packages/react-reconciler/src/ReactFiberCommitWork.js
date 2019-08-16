@@ -495,19 +495,23 @@ function commitDetachRef(current: Fiber) {
 // User-originating errors (lifecycles and refs) should not interrupt
 // deletion, so don't let them throw. Host-originating errors should
 // interrupt deletion, so it's okay
+// 卸载（分离） ref 以及调用 ComponentWillUnmount
 function commitUnmount(current: Fiber): void {
   onCommitUnmount(current);
 
   switch (current.tag) {
     case ClassComponent: {
+      // 卸载 ref 的操作
       safelyDetachRef(current);
       const instance = current.stateNode;
       if (typeof instance.componentWillUnmount === 'function') {
+        // 调用 ComponentWillUnmount
         safelyCallComponentWillUnmount(current, instance);
       }
       return;
     }
     case HostComponent: {
+      // HostComponent 也是卸载ref
       safelyDetachRef(current);
       return;
     }
@@ -525,6 +529,8 @@ function commitUnmount(current: Fiber): void {
   }
 }
 
+// Nested 嵌套 
+// 遍历子树 并对每个节点都执行 commitUnmount：（卸载（分离） ref 以及调用 ComponentWillUnmount）
 function commitNestedUnmounts(root: Fiber): void {
   // While we're inside a removed host node we don't want to call
   // removeChild on the inner nodes because they're removed by the top
@@ -533,6 +539,7 @@ function commitNestedUnmounts(root: Fiber): void {
   // we do an inner loop while we're still inside the host node.
   let node: Fiber = root;
   while (true) {
+    // 卸载（分离） ref 以及调用 ComponentWillUnmount
     commitUnmount(node);
     // Visit children because they may contain more composite or host nodes.
     // Skip portals because commitUnmount() currently visits them recursively.
@@ -792,6 +799,8 @@ function commitPlacement(finishedWork: Fiber): void {
   }
 }
 
+// 递归删除所有的dom节点
+// 分离整棵树的 ref 和 调用 componentWillUnmount
 function unmountHostComponents(current): void {
   // We only have the top Fiber that was deleted but we need recurse down its
   // children to find all the terminal nodes.
@@ -809,6 +818,8 @@ function unmountHostComponents(current): void {
     if (!currentParentIsValid) {
       let parent = node.return;
       findParent: while (true) {
+      // 这个循环是一直找到外层 的 合适的tag 组件为止 寻找最近的Host dom 节点
+      // 就为了做删除 操作的时候 有个父节点
         invariant(
           parent !== null,
           'Expected to find a host parent. This error is likely caused by ' +
@@ -834,6 +845,8 @@ function unmountHostComponents(current): void {
     }
 
     if (node.tag === HostComponent || node.tag === HostText) {
+      // 当前节点 就是 HostComponent 或者 HostText
+      // 遍历子树 并对每个节点都执行 commitUnmount：（卸载（分离） ref 以及调用 ComponentWillUnmount）
       commitNestedUnmounts(node);
       // After all the children have unmounted, it is now safe to remove the
       // node from the tree.
@@ -855,6 +868,7 @@ function unmountHostComponents(current): void {
         continue;
       }
     } else {
+      // 不是HostComponent 也不是 portal 情况
       commitUnmount(node);
       // Visit children because we may find more host components below.
       if (node.child !== null) {
@@ -863,9 +877,11 @@ function unmountHostComponents(current): void {
         continue;
       }
     }
+    // 只寻找子树 如果整棵 树遍历完 回到定点（自己） 便不需要操作，直接返回
     if (node === current) {
       return;
     }
+    // 深度优先遍历子树的过程
     while (node.sibling === null) {
       if (node.return === null || node.return === current) {
         return;
@@ -882,6 +898,9 @@ function unmountHostComponents(current): void {
   }
 }
 
+
+// 递归删除所有的dom节点
+// 分离整棵树的 ref 和 调用 componentWillUnmount
 function commitDeletion(current: Fiber): void {
   if (supportsMutation) {
     // Recursively delete all host nodes from the parent.
