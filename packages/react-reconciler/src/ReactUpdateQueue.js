@@ -585,6 +585,7 @@ export function checkHasForceUpdateAfterProcessing(): boolean {
   return hasForceUpdate;
 }
 
+// 处理UpdateQueue链表 执行 callback
 export function commitUpdateQueue<State>(
   finishedWork: Fiber,
   finishedQueue: UpdateQueue<State>,
@@ -608,6 +609,7 @@ export function commitUpdateQueue<State>(
   }
 
   // Commit the effects
+  // finishedQueue.firstEffect 的 effect 是 update  具有 callball
   commitUpdateEffects(finishedQueue.firstEffect, instance);
   finishedQueue.firstEffect = finishedQueue.lastEffect = null;
 
@@ -615,6 +617,7 @@ export function commitUpdateQueue<State>(
   finishedQueue.firstCapturedEffect = finishedQueue.lastCapturedEffect = null;
 }
 
+// 执行完所有 update中的 callback
 function commitUpdateEffects<State>(
   effect: Update<State> | null,
   instance: any,

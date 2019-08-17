@@ -496,6 +496,7 @@ function commitAllLifeCycles(
       // 有 Updatea 和 Callback 才执行
       recordEffect();
       const current = nextEffect.alternate;
+      // 根据不同组件 不同的时期（初次渲染，还是更新）执行不同的生命周期方法
       commitLifeCycles(
         finishedRoot,
         current,
@@ -719,7 +720,7 @@ function commitRoot(root: FiberRoot, finishedWork: Fiber): void {
       }
     } else {
       try {
-        // commitAllLifeCycles 和各种组件， 和所有各种东西的生命周期的方法 都会在这里面被调用
+        // commitAllLifeCycles 和各种组件， 生命周期的方法 callback 都会在这里面被调用
         commitAllLifeCycles(root, committedExpirationTime);
       } catch (e) {
         didError = true;

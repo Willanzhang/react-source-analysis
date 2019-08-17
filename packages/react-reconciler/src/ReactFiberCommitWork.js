@@ -316,8 +316,10 @@ function commitLifeCycles(
       // These effects should only be committed when components are first mounted,
       // aka when there is no current/alternate.
       if (current === null && finishedWork.effectTag & Update) {
+        // 第一次渲染的时候 是否要自动聚焦 input textarea 等host节点
         const type = finishedWork.type;
         const props = finishedWork.memoizedProps;
+        // 判断类型 自动聚焦
         commitMount(instance, type, props, finishedWork);
       }
 
