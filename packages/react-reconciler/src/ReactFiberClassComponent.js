@@ -1008,10 +1008,14 @@ function updateClassInstance(
 	const oldContext = instance.context;
 	const contextType = ctor.contextType;
 	let nextContext;
+	// 使用新 context 的时候
 	if (typeof contextType === 'object' && contextType !== null) {
 		nextContext = readContext(contextType);
 	} else {
+		// 使用旧context api的时候
+		// 当前 cursor.current 游标所指定的context
 		const nextUnmaskedContext = getUnmaskedContext(workInProgress, ctor, true);
+		// 根据 声明的 contextTypes 属性 从 context 获取可以使用的 context属性 赋值 给 this.context使用
 		nextContext = getMaskedContext(workInProgress, nextUnmaskedContext);
 	}
 

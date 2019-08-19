@@ -561,7 +561,7 @@ function finishClassComponent(
   renderExpirationTime: ExpirationTime,
 ) {
   // Refs should update even if shouldComponentUpdate returns false
-  // 即使shouldComponentUpdate返回false refs也是要更新的
+  // 即使ClassComponent.shouldComponentUpdate返回false refs也是要更新的
   markRef(current, workInProgress);
 
   const didCaptureError = (workInProgress.effectTag & DidCapture) !== NoEffect;
@@ -648,10 +648,12 @@ function finishClassComponent(
   workInProgress.memoizedState = instance.state;
 
   // The context might have changed so we need to recalculate it.
+  // context 
   if (hasContext) {
+    // 第二次 执行 invalidateContextProvider  didChange = true 会执行push
     invalidateContextProvider(workInProgress, Component, true);
   }
-  // 返回第一个子节点   再进行workloop？
+  // 返回第一个子节点  再进行workloop？
   return workInProgress.child;
 }
 
@@ -1625,6 +1627,7 @@ function beginWork(
           break;
         case ClassComponent: {
           const Component = workInProgress.type;
+          // 判断是否是 context 提供者 (通过 childContextTypes)
           if (isLegacyContextProvider(Component)) {
             pushLegacyContextProvider(workInProgress);
           }
