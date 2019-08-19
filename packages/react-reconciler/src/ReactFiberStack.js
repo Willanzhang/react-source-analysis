@@ -49,6 +49,7 @@ function pop<T>(cursor: StackCursor<T>, fiber: Fiber): void {
     }
   }
 
+  // 将老的值赋值回 cursor上
   cursor.current = valueStack[index];
 
   valueStack[index] = null;
@@ -63,12 +64,13 @@ function pop<T>(cursor: StackCursor<T>, fiber: Fiber): void {
 function push<T>(cursor: StackCursor<T>, value: T, fiber: Fiber): void {
   index++;
 
+  // 老的 value 推入栈中
   valueStack[index] = cursor.current;
 
   if (__DEV__) {
     fiberStack[index] = fiber;
   }
-
+  // 游标 指向最新的value
   cursor.current = value;
 }
 
