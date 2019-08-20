@@ -32,6 +32,7 @@ export function createContext<T>(
     }
   }
 
+  // 这个 context 对象又是 consumer
   const context: ReactContext<T> = {
     $$typeof: REACT_CONTEXT_TYPE,
     _calculateChangedBits: calculateChangedBits,

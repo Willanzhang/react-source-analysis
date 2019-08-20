@@ -1416,7 +1416,9 @@ function updateContextProvider(
   workInProgress: Fiber,
   renderExpirationTime: ExpirationTime,
 ) {
+  // providerType 是声明的 provider组件
   const providerType: ReactProviderType<any> = workInProgress.type;
+  // context 又是 consumer
   const context: ReactContext<any> = providerType._context;
 
   const newProps = workInProgress.pendingProps;
@@ -1444,6 +1446,7 @@ function updateContextProvider(
     const oldValue = oldProps.value;
     const changedBits = calculateChangedBits(context, newValue, oldValue);
     if (changedBits === 0) {
+      // 等于 0 是说明 context 没有变化
       // No change. Bailout early if children are the same.
       if (
         oldProps.children === newProps.children &&
@@ -1458,6 +1461,7 @@ function updateContextProvider(
     } else {
       // The context value changed. Search for matching consumers and schedule
       // them to update.
+      // 更新 provider 组件
       propagateContextChange(
         workInProgress,
         context,
@@ -1479,6 +1483,7 @@ function updateContextConsumer(
   workInProgress: Fiber,
   renderExpirationTime: ExpirationTime,
 ) {
+  // 这里就有点疑问
   let context: ReactContext<any> = workInProgress.type;
   // The logic below for Context differs depending on PROD or DEV mode. In
   // DEV mode, we create a separate object for Context.Consumer that acts
@@ -1506,6 +1511,7 @@ function updateContextConsumer(
       context = (context: any)._context;
     }
   }
+  // consumer 接受的chidlren只能是一个方法
   const newProps = workInProgress.pendingProps;
   const render = newProps.children;
 
@@ -1519,7 +1525,9 @@ function updateContextConsumer(
     );
   }
 
+  // 初始化 这个（consumer）fieber 节点
   prepareToReadContext(workInProgress, renderExpirationTime);
+  // unstable_observedBits 这个consumer 依赖的context是否有变化的 一个值
   const newValue = readContext(context, newProps.unstable_observedBits);
   let newChildren;
   if (__DEV__) {

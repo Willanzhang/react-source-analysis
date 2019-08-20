@@ -264,7 +264,7 @@ function invalidateContextProvider(
     // Merge parent and own context.
     // Skip this if we're not updating due to sCU.
     // This avoids unnecessarily recomputing memoized values.
-    // 合并上层 context（paremtContext）
+    // 合并上层 context（parentContext）
     const mergedContext = processChildContext(
       workInProgress,
       type,

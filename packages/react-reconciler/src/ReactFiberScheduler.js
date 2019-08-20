@@ -1721,7 +1721,7 @@ function scheduleWorkToRoot(fiber: Fiber, expirationTime): FiberRoot | null {
     fiber.expirationTime === NoWork || // 这个接点没有任何更新操作
     fiber.expirationTime > expirationTime // expirationTime 是 scheduleWork  传入的 也就是创建update的时候创建的expirationTime 这里 表示之前产生更新的优先级低于现在更新的优先级
   ) {
-    fiber.expirationTime = expirationTime;  // 表示之前产生更新的优先级低于现在更新的优先级   那此时这个fiber 会设置成 优先级更高的 expirationTime 
+    fiber.expirationTime = expirationTime;  // 表示之前产生更新的优先级低于现在更新的优先级 那此时这个fiber 会设置成 优先级更高的 expirationTime 
   }
   let alternate = fiber.alternate; // alternate 看下fiber的数据结构 下面这一块是设置alternate(workInProgress) 的expirationTime
   if (
