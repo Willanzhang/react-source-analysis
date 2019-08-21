@@ -53,12 +53,15 @@ export function resetContextDependences(): void {
   lastContextWithAllBitsObserved = null;
 }
 
+
 export function pushProvider<T>(providerFiber: Fiber, nextValue: T): void {
   const context: ReactContext<T> = providerFiber.type._context;
 
   if (isPrimaryRenderer) {
+    // 将当前的context值（context._currentValue） 推入 stack中
     push(valueCursor, context._currentValue, providerFiber);
 
+    // 将最新的 context 值赋值给当前 context(consumer)
     context._currentValue = nextValue;
     if (__DEV__) {
       warningWithoutStack(
@@ -100,6 +103,7 @@ export function popProvider(providerFiber: Fiber): void {
   }
 }
 
+// 计算 新旧值是否相等，相等 返回 0
 export function calculateChangedBits<T>(
   context: ReactContext<T>,
   newValue: T,
@@ -137,6 +141,9 @@ export function calculateChangedBits<T>(
   }
 }
 
+// 将 当前 provider这个组件每个节点的子节点都遍历到  
+// 并且找到具有fiber.firstContextDependency 给它创建更新的过程
+// 并且更新 那个fiber 和父链上的 expirationTime 
 export function propagateContextChange(
   workInProgress: Fiber,
   context: ReactContext<mixed>,
@@ -153,7 +160,6 @@ export function propagateContextChange(
   // 并且找到具有fiber.firstContextDependency 给它创建更新的过程
   while (fiber !== null) {
     let nextFiber;
-
     // Visit this fiber.
     let dependency = fiber.firstContextDependency;
     if (dependency !== null) {
@@ -164,7 +170,6 @@ export function propagateContextChange(
           (dependency.observedBits & changedBits) !== 0 // changedBits 是32都是1  只要observedBits 不是0 就不会等于1  说明他们有相交的部分  也说明它依赖的部分也变化了
         ) {
           // Match! Schedule an update on this fiber.
-
           if (fiber.tag === ClassComponent) {
             // Schedule a force update on the work-in-progress.
             // 因为 只有 setState能更新组件 但是这里 使用过的 context改变了 必须要进行更新
@@ -279,6 +284,7 @@ export function prepareToReadContext(
   workInProgress.firstContextDependency = null;
 }
 
+// 返回最新 context 的值
 export function readContext<T>(
   context: ReactContext<T>,
   observedBits: void | number | boolean,

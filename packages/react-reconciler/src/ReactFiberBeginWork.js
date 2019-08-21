@@ -1416,7 +1416,7 @@ function updateContextProvider(
   workInProgress: Fiber,
   renderExpirationTime: ExpirationTime,
 ) {
-  // providerType 是声明的 provider组件
+  // providerType 是声明的 provider 组件
   const providerType: ReactProviderType<any> = workInProgress.type;
   // context 又是 consumer
   const context: ReactContext<any> = providerType._context;
@@ -1440,18 +1440,22 @@ function updateContextProvider(
     }
   }
 
+  // 推入新的cursor 以及 赋值 context._currentValue
   pushProvider(workInProgress, newValue);
 
   if (oldProps !== null) {
     const oldValue = oldProps.value;
+    // calculateChangedBits 计算 新旧值是否相等，相等 返回 0 
     const changedBits = calculateChangedBits(context, newValue, oldValue);
     if (changedBits === 0) {
-      // 等于 0 是说明 context 没有变化
       // No change. Bailout early if children are the same.
+      // 等于 0 是说明 context 没有变化
+      // consumer 的children 
       if (
         oldProps.children === newProps.children &&
         !hasLegacyContextChanged()
       ) {
+        // 没有跟新 跳过 调和子节点
         return bailoutOnAlreadyFinishedWork(
           current,
           workInProgress,
@@ -1511,7 +1515,7 @@ function updateContextConsumer(
       context = (context: any)._context;
     }
   }
-  // consumer 接受的chidlren只能是一个方法
+  // consumer 接受的 chidlren 只能是一个方法
   const newProps = workInProgress.pendingProps;
   const render = newProps.children;
 
