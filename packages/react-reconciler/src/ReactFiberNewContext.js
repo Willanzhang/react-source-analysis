@@ -53,12 +53,15 @@ export function resetContextDependences(): void {
   lastContextWithAllBitsObserved = null;
 }
 
+
 export function pushProvider<T>(providerFiber: Fiber, nextValue: T): void {
   const context: ReactContext<T> = providerFiber.type._context;
 
   if (isPrimaryRenderer) {
+    // 将当前的context值（context._currentValue） 推入 stack中
     push(valueCursor, context._currentValue, providerFiber);
 
+    // 将最新的 context 值赋值给当前 context(consumer)
     context._currentValue = nextValue;
     if (__DEV__) {
       warningWithoutStack(
@@ -100,6 +103,7 @@ export function popProvider(providerFiber: Fiber): void {
   }
 }
 
+// 计算 新旧值是否相等，相等 返回 0
 export function calculateChangedBits<T>(
   context: ReactContext<T>,
   newValue: T,
@@ -108,6 +112,9 @@ export function calculateChangedBits<T>(
   // Use Object.is to compare the new context value to the old value. Inlined
   // Object.is polyfill.
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/is
+  // ES6 Object.is(a, b) 比较两个值是否全等
+  // 和 全等===的 区别在于
+  // Object.is(-0, +0) false   Object.is(NaN, NaN) true  这个两个是有区别的
   if (
     (oldValue === newValue &&
       (oldValue !== 0 || 1 / oldValue === 1 / (newValue: any))) ||
@@ -129,37 +136,44 @@ export function calculateChangedBits<T>(
         changedBits,
       );
     }
+    // | 0 取整
     return changedBits | 0;
   }
 }
 
+// 将 当前 provider这个组件每个节点的子节点都遍历到  
+// 并且找到具有fiber.firstContextDependency 给它创建更新的过程
+// 并且更新 那个fiber 和父链上的 expirationTime 
 export function propagateContextChange(
   workInProgress: Fiber,
   context: ReactContext<mixed>,
   changedBits: number,
   renderExpirationTime: ExpirationTime,
 ): void {
+  // 获取第一个子节点
   let fiber = workInProgress.child;
   if (fiber !== null) {
     // Set the return pointer of the child to the work-in-progress fiber.
     fiber.return = workInProgress;
   }
+  // 将 当前 provider这个组件每个节点的子节点都遍历到  
+  // 并且找到具有fiber.firstContextDependency 给它创建更新的过程
   while (fiber !== null) {
     let nextFiber;
-
     // Visit this fiber.
     let dependency = fiber.firstContextDependency;
     if (dependency !== null) {
       do {
         // Check if the context matches.
         if (
-          dependency.context === context &&
-          (dependency.observedBits & changedBits) !== 0
+          dependency.context === context && // 说明当前遍历的组件 是依赖于当前的context  如果context 变化 它需要重新渲染
+          (dependency.observedBits & changedBits) !== 0 // changedBits 是32都是1  只要observedBits 不是0 就不会等于1  说明他们有相交的部分  也说明它依赖的部分也变化了
         ) {
           // Match! Schedule an update on this fiber.
-
           if (fiber.tag === ClassComponent) {
             // Schedule a force update on the work-in-progress.
+            // 因为 只有 setState能更新组件 但是这里 使用过的 context改变了 必须要进行更新
+            // 主动添加一个 update 更新这个ClassComponent  update.tag 是forceUpdate  强制更新一下
             const update = createUpdate(renderExpirationTime);
             update.tag = ForceUpdate;
             // TODO: Because we don't have a work-in-progress, this will add the
@@ -173,8 +187,12 @@ export function propagateContextChange(
             fiber.expirationTime === NoWork ||
             fiber.expirationTime > renderExpirationTime
           ) {
+            // 如果这个 fiber.expirationTime 的expirationTime 的优先级是低于这次 当前正在渲染的expirtionTime 
+            // 那就将当前 要渲染的expirationTime 赋值给 它（fiber）让它在这次肯定被更新到
             fiber.expirationTime = renderExpirationTime;
           }
+          // 上面是在workInProcress上被设置
+          // 下面是在 current上设置 ，它们俩应该是同步的
           let alternate = fiber.alternate;
           if (
             alternate !== null &&
@@ -186,6 +204,8 @@ export function propagateContextChange(
           // Update the child expiration time of all the ancestors, including
           // the alternates.
           let node = fiber.return;
+          // 这里修改的 expirtionTime 那么它父链上的值都有可能被改变 ，
+          // 这里是重新设置父链上的expirationTime
           while (node !== null) {
             alternate = node.alternate;
             if (
@@ -264,6 +284,7 @@ export function prepareToReadContext(
   workInProgress.firstContextDependency = null;
 }
 
+// 返回最新 context 的值
 export function readContext<T>(
   context: ReactContext<T>,
   observedBits: void | number | boolean,

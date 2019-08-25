@@ -561,7 +561,7 @@ function finishClassComponent(
   renderExpirationTime: ExpirationTime,
 ) {
   // Refs should update even if shouldComponentUpdate returns false
-  // 即使shouldComponentUpdate返回false refs也是要更新的
+  // 即使ClassComponent.shouldComponentUpdate返回false refs也是要更新的
   markRef(current, workInProgress);
 
   const didCaptureError = (workInProgress.effectTag & DidCapture) !== NoEffect;
@@ -648,10 +648,12 @@ function finishClassComponent(
   workInProgress.memoizedState = instance.state;
 
   // The context might have changed so we need to recalculate it.
+  // context 
   if (hasContext) {
+    // 第二次 执行 invalidateContextProvider  didChange = true 会执行push
     invalidateContextProvider(workInProgress, Component, true);
   }
-  // 返回第一个子节点   再进行workloop？
+  // 返回第一个子节点  再进行workloop？
   return workInProgress.child;
 }
 
@@ -1414,7 +1416,9 @@ function updateContextProvider(
   workInProgress: Fiber,
   renderExpirationTime: ExpirationTime,
 ) {
+  // providerType 是声明的 provider 组件
   const providerType: ReactProviderType<any> = workInProgress.type;
+  // context 又是 consumer
   const context: ReactContext<any> = providerType._context;
 
   const newProps = workInProgress.pendingProps;
@@ -1436,17 +1440,22 @@ function updateContextProvider(
     }
   }
 
+  // 推入新的cursor 以及 赋值 context._currentValue
   pushProvider(workInProgress, newValue);
 
   if (oldProps !== null) {
     const oldValue = oldProps.value;
+    // calculateChangedBits 计算 新旧值是否相等，相等 返回 0 
     const changedBits = calculateChangedBits(context, newValue, oldValue);
     if (changedBits === 0) {
       // No change. Bailout early if children are the same.
+      // 等于 0 是说明 context 没有变化
+      // consumer 的children 
       if (
         oldProps.children === newProps.children &&
         !hasLegacyContextChanged()
       ) {
+        // 没有跟新 跳过 调和子节点
         return bailoutOnAlreadyFinishedWork(
           current,
           workInProgress,
@@ -1456,6 +1465,7 @@ function updateContextProvider(
     } else {
       // The context value changed. Search for matching consumers and schedule
       // them to update.
+      // 更新 provider 组件
       propagateContextChange(
         workInProgress,
         context,
@@ -1477,6 +1487,7 @@ function updateContextConsumer(
   workInProgress: Fiber,
   renderExpirationTime: ExpirationTime,
 ) {
+  // 这里就有点疑问
   let context: ReactContext<any> = workInProgress.type;
   // The logic below for Context differs depending on PROD or DEV mode. In
   // DEV mode, we create a separate object for Context.Consumer that acts
@@ -1504,6 +1515,7 @@ function updateContextConsumer(
       context = (context: any)._context;
     }
   }
+  // consumer 接受的 chidlren 只能是一个方法
   const newProps = workInProgress.pendingProps;
   const render = newProps.children;
 
@@ -1517,7 +1529,9 @@ function updateContextConsumer(
     );
   }
 
+  // 初始化 这个（consumer）fieber 节点
   prepareToReadContext(workInProgress, renderExpirationTime);
+  // unstable_observedBits 这个consumer 依赖的context是否有变化的 一个值
   const newValue = readContext(context, newProps.unstable_observedBits);
   let newChildren;
   if (__DEV__) {
@@ -1625,6 +1639,7 @@ function beginWork(
           break;
         case ClassComponent: {
           const Component = workInProgress.type;
+          // 判断是否是 context 提供者 (通过 childContextTypes)
           if (isLegacyContextProvider(Component)) {
             pushLegacyContextProvider(workInProgress);
           }
