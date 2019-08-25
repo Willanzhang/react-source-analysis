@@ -99,7 +99,7 @@ if (__DEV__) {
 }
 
 const isArray = Array.isArray;
-
+// coerce 强迫 挟制
 function coerceRef(
   returnFiber: Fiber,
   current: Fiber | null,
@@ -108,9 +108,12 @@ function coerceRef(
   let mixedRef = element.ref;
   if (
     mixedRef !== null &&
-    typeof mixedRef !== 'function' &&
-    typeof mixedRef !== 'object'
+    typeof mixedRef !== 'function' && // function ref
+    typeof mixedRef !== 'object' // object ref 
   ) {
+    // function ref  object ref  是不需要我们去处理的
+    // string ref 是需要我们处理的
+    // 这里就是为了处理string ref
     if (__DEV__) {
       if (returnFiber.mode & StrictMode) {
         const componentName = getComponentName(returnFiber.type) || 'Component';
@@ -130,7 +133,10 @@ function coerceRef(
         }
       }
     }
-
+    
+    // 寻找 _owner 的过程  ReactElement.js  
+    // _owner 对应的是 那个classComponent 的fiber 对象
+    // 因为只有 classComponent 实例才有this 所以 ref 都是挂载到classComponent 实例上面
     if (element._owner) {
       const owner: ?Fiber = (element._owner: any);
       let inst;
@@ -156,9 +162,15 @@ function coerceRef(
         typeof current.ref === 'function' &&
         current.ref._stringRef === stringRef
       ) {
+        // 更新过程中判断是 stringRef 对应的值是否有变化 
+        // 如果没有变化不需要重新赋值
         return current.ref;
       }
       const ref = function(value) {
+        // dom 或者 classInstance 被挂载的时候他会 调用 ref 这个方法
+        // 传入他自己的实例
+        // 在commitRoot 时候别挂载到dom上的时候 会调用这个方法
+        // 将它挂载到inst 上面，  达到string  ref 挂载到this.refs这个功能
         let refs = inst.refs;
         if (refs === emptyRefsObject) {
           // This is a lazy pooled frozen object, so we need to initialize.
@@ -1183,6 +1195,7 @@ function ChildReconciler(shouldTrackSideEffects) {
               : element.props,
             expirationTime,
           );
+          // 处理 ref 方便挂载真正的实例
           existing.ref = coerceRef(returnFiber, child, element);
           existing.return = returnFiber;
           if (__DEV__) {

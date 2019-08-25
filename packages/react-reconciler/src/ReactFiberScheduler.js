@@ -393,6 +393,7 @@ function commitAllHostEffects() {
     if (effectTag & Ref) {
       const current = nextEffect.alternate;
       if (current !== null) {
+        // 分离 ref 将ref从之前挂载的地方卸载下来
         commitDetachRef(current);
       }
     }
@@ -507,6 +508,7 @@ function commitAllLifeCycles(
 
     if (effectTag & Ref) {
       recordEffect();
+      // 将真正的更新的节点挂载上去
       commitAttachRef(nextEffect);
     }
 

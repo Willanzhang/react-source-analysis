@@ -455,6 +455,7 @@ function hideOrUnhideAllChildren(finishedWork, isHidden) {
   }
 }
 
+// 挂载ref
 function commitAttachRef(finishedWork: Fiber) {
   const ref = finishedWork.ref;
   if (ref !== null) {
