@@ -17,7 +17,7 @@ import type {
 import type {Container} from './ReactDOMHostConfig';
 
 import '../shared/checkReact';
-import './ReactDOMClientInjection';
+import './ReactDOMClientInjection'; // 执行事件模块注入
 
 import * as DOMRenderer from 'react-reconciler/inline.dom';
 import * as ReactPortal from 'shared/ReactPortal';

@@ -6,6 +6,7 @@
  */
 
 import * as EventPluginHub from 'events/EventPluginHub';
+// 在 packages\events\EventPluginHub.js下面
 import * as EventPluginUtils from 'events/EventPluginUtils';
 
 import {
@@ -22,7 +23,9 @@ import SimpleEventPlugin from '../events/SimpleEventPlugin';
 
 /**
  * Inject modules for resolving DOM hierarchy and plugin ordering.
+ * 按顺序注入 dom事件插件
  */
+// DOMEventPluginOrder 中多了个 ResponderEventPlugin 和下面injectEventPluginsByName插入的是有不同的
 EventPluginHub.injection.injectEventPluginOrder(DOMEventPluginOrder);
 EventPluginUtils.setComponentTree(
   getFiberCurrentPropsFromNode,

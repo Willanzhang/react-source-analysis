@@ -48,6 +48,7 @@ function recomputePluginOrdering(): void {
         'the plugin ordering, `%s`.',
       pluginName,
     );
+    // plugins 也是个全局变量 刚开始的时候是一个数组
     if (plugins[pluginIndex]) {
       continue;
     }
@@ -57,7 +58,10 @@ function recomputePluginOrdering(): void {
         'method, but `%s` does not.',
       pluginName,
     );
+    // 完全根据eventPluginOrder 的模块插入了的
+    // 有写模块是可能不存在的
     plugins[pluginIndex] = pluginModule;
+    // 要了解一个 eventPlugin是什么样的内容 去看changeEventPlugin 就是 onchange 那个事件
     const publishedEvents = pluginModule.eventTypes;
     for (const eventName in publishedEvents) {
       invariant(
@@ -93,17 +97,22 @@ function publishEventForPlugin(
       'event name, `%s`.',
     eventName,
   );
+  // 对于 changeEventPlugin eventNameDispatchConfigs = { change: ChangeEventPlugin.eventTypes.change }
+  // 有其他事件也这样注入
   eventNameDispatchConfigs[eventName] = dispatchConfig;
 
+  // { bubbled: 'onChange', captured: 'onChangeCapture'}
   const phasedRegistrationNames = dispatchConfig.phasedRegistrationNames;
   if (phasedRegistrationNames) {
+    // bubbled
     for (const phaseName in phasedRegistrationNames) {
       if (phasedRegistrationNames.hasOwnProperty(phaseName)) {
+        // onChange
         const phasedRegistrationName = phasedRegistrationNames[phaseName];
         publishRegistrationName(
-          phasedRegistrationName,
-          pluginModule,
-          eventName,
+          phasedRegistrationName, // onChange
+          pluginModule, // ChangeEventPlugin
+          eventName, // change
         );
       }
     }
@@ -137,7 +146,9 @@ function publishRegistrationName(
       'registration name, `%s`.',
     registrationName,
   );
+  // onChange: ChangeEventPlugin
   registrationNameModules[registrationName] = pluginModule;
+  // onChange: [Top_BLUR ...]
   registrationNameDependencies[registrationName] =
     pluginModule.eventTypes[eventName].dependencies;
 
@@ -204,6 +215,7 @@ export function injectEventPluginOrder(
       'once. You are likely trying to load more than one copy of React.',
   );
   // Clone the ordering so it cannot be dynamically mutated.
+  // 克隆数组， 可以在当前文件内动态修改数组， 不会修改原数组
   eventPluginOrder = Array.prototype.slice.call(injectedEventPluginOrder);
   recomputePluginOrdering();
 }
@@ -218,6 +230,7 @@ export function injectEventPluginOrder(
  * @internal
  * @see {EventPluginHub.injection.injectEventPluginsByName}
  */
+// 在namesToPlugins上按顺序注入
 export function injectEventPluginsByName(
   injectedNamesToPlugins: NamesToPlugins,
 ): void {

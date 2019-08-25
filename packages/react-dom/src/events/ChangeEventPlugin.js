@@ -31,11 +31,14 @@ import {setDefaultValue} from '../client/ReactDOMInput';
 import {disableInputAttributeSyncing} from 'shared/ReactFeatureFlags';
 
 const eventTypes = {
+  // 这是它 的真实事件作为eventTypes的key, 还可以这样添加多个 addEventListener('change')
   change: {
+    // phased 阶段  捕获 和冒泡
     phasedRegistrationNames: {
       bubbled: 'onChange',
       captured: 'onChangeCapture',
     },
+    // 要监听change 事件同时要监听下面这些事件
     dependencies: [
       TOP_BLUR,
       TOP_CHANGE,
