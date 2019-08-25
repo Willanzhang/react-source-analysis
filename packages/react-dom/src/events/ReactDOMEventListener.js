@@ -141,6 +141,9 @@ export function trapBubbledEvent(
   if (!element) {
     return null;
   }
+  // 要通过 Interactive 判断是否是个 Interactive 事件 Interactive（用户交互事件）
+  // Interactive（用户交互事件）中 setState 的 expirationTime小 优先级高
+  // 是否Interactive 绑定的事件不同
   const dispatch = isInteractiveTopLevelEventType(topLevelType)
     ? dispatchInteractiveEvent
     : dispatchEvent;

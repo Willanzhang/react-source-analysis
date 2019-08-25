@@ -12,6 +12,7 @@ export function addEventBubbleListener(
   eventType: string,
   listener: Function,
 ): void {
+  // 对于大部分事件都是代理，element 都是 ReactDOM.render 的传入的第二个参数
   element.addEventListener(eventType, listener, false);
 }
 

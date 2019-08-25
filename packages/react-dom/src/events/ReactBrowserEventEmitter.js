@@ -92,6 +92,7 @@ let reactTopListenersCounter = 0;
  */
 const topListenersIDKey = '_reactListenersID' + ('' + Math.random()).slice(2);
 
+// 就是判断 和这个元素是否监听了哪些事件， 并且返回
 function getListeningForDocument(mountAt: any) {
   // In IE8, `mountAt` is a host object and doesn't have `hasOwnProperty`
   // directly.
@@ -127,12 +128,15 @@ export function listenTo(
   registrationName: string,
   mountAt: Document | Element,
 ) {
+  // getListeningForDocument 就是判断 和这个元素是否监听了哪些事件， 并且返回
   const isListening = getListeningForDocument(mountAt);
   const dependencies = registrationNameDependencies[registrationName];
 
   for (let i = 0; i < dependencies.length; i++) {
     const dependency = dependencies[i];
     if (!(isListening.hasOwnProperty(dependency) && isListening[dependency])) {
+      // 如果 isListening 已经有这些要依赖的事件的监听 就跳过， 否则执行下面操作
+      // 通过trapCapturedEvent 进行监听 是捕获节点的时间
       switch (dependency) {
         case TOP_SCROLL:
           trapCapturedEvent(TOP_SCROLL, mountAt);
@@ -163,6 +167,8 @@ export function listenTo(
           // Media events don't bubble so adding the listener wouldn't do anything.
           const isMediaEvent = mediaEventTypes.indexOf(dependency) !== -1;
           if (!isMediaEvent) {
+            // 这里不对media事件重新新进行绑定 前面过程中的 setInitialProperties 已经绑定过了
+            // 普通事件用 bubbled事件就行绑定就行了
             trapBubbledEvent(dependency, mountAt);
           }
           break;

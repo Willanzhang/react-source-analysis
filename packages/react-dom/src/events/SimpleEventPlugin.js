@@ -207,6 +207,8 @@ const SimpleEventPlugin: PluginModule<MouseEvent> & {
   eventTypes: eventTypes,
 
   isInteractiveTopLevelEventType(topLevelType: TopLevelType): boolean {
+    // 在这个文件下 topLevelEventsToDispatchConfig 通过遍历不同事件列表（noInteractive 和 Interactive 列表）
+    // 执行addEventTypeNameToConfig  里面会配置 是否是Interactive事件
     const config = topLevelEventsToDispatchConfig[topLevelType];
     return config !== undefined && config.isInteractive === true;
   },

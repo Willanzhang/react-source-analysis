@@ -226,6 +226,8 @@ function ensureListeningTo(rootContainerElement, registrationName) {
   const isDocumentOrFragment =
     rootContainerElement.nodeType === DOCUMENT_NODE ||
     rootContainerElement.nodeType === DOCUMENT_FRAGMENT_NODE;
+  // doc 最终是用来把事件绑定在什么地方
+  // react 中大部分可冒泡的事件 都是通过事件代理进行绑定的
   const doc = isDocumentOrFragment
     ? rootContainerElement
     : rootContainerElement.ownerDocument;
@@ -309,10 +311,12 @@ function setInitialDOMProperties(
       // adding a special case here, but then it wouldn't be emitted
       // on server rendering (but we *do* want to emit it in SSR).
     } else if (registrationNameModules.hasOwnProperty(propKey)) {
+      // 假如属性上有事件属性 那就启动监听
       if (nextProp != null) {
         if (__DEV__ && typeof nextProp !== 'function') {
           warnForInvalidEventListener(propKey, nextProp);
         }
+        // rootContainerElement 就是应用挂载 的fiberRoot对应的container
         ensureListeningTo(rootContainerElement, propKey);
       }
     } else if (nextProp != null) {
@@ -492,6 +496,7 @@ export function setInitialProperties(
     case 'video':
     case 'audio':
       // Create listener for each media event
+      // 上面这些标签 都需要绑定 mediaEventTypy事件
       for (let i = 0; i < mediaEventTypes.length; i++) {
         trapBubbledEvent(mediaEventTypes[i], domElement);
       }
