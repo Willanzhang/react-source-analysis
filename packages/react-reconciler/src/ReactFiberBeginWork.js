@@ -767,6 +767,9 @@ function updateHostComponent(current, workInProgress, renderExpirationTime) {
   if (current === null) {
     // 如果要复用服务端 渲染返回的dom内容 只有HostComponent 和 text 是需要被复用的
     // 对与ClassComponent 和 FunctionComponent 因为他们本身不对应 dom  所以不会调用hydrate 相关的东西
+    // 主要目的就是 判断这个节点是否有可以进行复用的节点并继续往下找
+    // 直到一侧子节点hydrate完成 进行 compeletUnitOfWork 进行创建节点， hydrate的复用
+    // 如果没有的话 子节点就不会再进行 hydrating
     tryToClaimNextHydratableInstance(workInProgress);
   }
 

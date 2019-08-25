@@ -510,6 +510,7 @@ export function getNextHydratableSibling(
   return (node: any);
 }
 
+// 找到第一个合法的子节点
 export function getFirstHydratableChild(
   parentInstance: Container | Instance,
 ): null | Instance | TextInstance {

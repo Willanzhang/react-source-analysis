@@ -47,11 +47,16 @@ let nextHydratableInstance: null | HydratableInstance = null;
 let isHydrating: boolean = false;
 
 function enterHydrationState(fiber: Fiber): boolean {
-  if (!supportsHydration) {
+  if (!supportsHydration) { // supportsHydration 写死的常量 true
     return false;
   }
 
+  // fiber.stateNode 是 fiberRoot  containerInfo 是 ReactDOM.render的第二个参数是个dom节点
+  // 一些全局变量的初始化， 
+  // 代表着将要进行 hydrate
+  // 开始后主要集中在 hostComponent 以及 textComponent
   const parentInstance = fiber.stateNode.containerInfo;
+  // 找到第一个合法的子节点
   nextHydratableInstance = getFirstHydratableChild(parentInstance);
   hydrationParentFiber = fiber;
   isHydrating = true;
@@ -157,6 +162,7 @@ function tryHydrate(fiber, nextInstance) {
     case HostComponent: {
       const type = fiber.type;
       const props = fiber.pendingProps;
+      // canHydrateInstance 判断是否可以共用  elementNode 而且必须标签相同
       const instance = canHydrateInstance(nextInstance, type, props);
       if (instance !== null) {
         fiber.stateNode = (instance: Instance);
@@ -166,6 +172,7 @@ function tryHydrate(fiber, nextInstance) {
     }
     case HostText: {
       const text = fiber.pendingProps;
+      // canHydrateTextInstance text === '' || instance.nodeType !== TEXT_NODE
       const textInstance = canHydrateTextInstance(nextInstance, text);
       if (textInstance !== null) {
         fiber.stateNode = (textInstance: TextInstance);
@@ -179,24 +186,34 @@ function tryHydrate(fiber, nextInstance) {
 }
 
 function tryToClaimNextHydratableInstance(fiber: Fiber): void {
+  // 如果没有复用的就停止关于这个节点的 isHydrating
   if (!isHydrating) {
     return;
   }
+  // nextHydratableInstance root节点下第一个合法的子节点
   let nextInstance = nextHydratableInstance;
   if (!nextInstance) {
+    // 这个节点不存在， 说明当前正在更新的hostComponent没有节点和它进行hydrate
+    // 这是一个新增的节点
     // Nothing to hydrate. Make it an insertion.
+    // insertNonHydratedInstance 给这个节点 的effectTag添加 Placement（插入）
     insertNonHydratedInstance((hydrationParentFiber: any), fiber);
     isHydrating = false;
     hydrationParentFiber = fiber;
     return;
   }
+  // 下面是可以进行hydrate的操作
   const firstAttemptedInstance = nextInstance;
+  // tryHydrate 判断存在的节点能否被复用
   if (!tryHydrate(fiber, nextInstance)) {
     // If we can't hydrate this instance let's try the next one.
     // We use this as a heuristic. It's based on intuition and not data so it
     // might be flawed or unnecessary.
+
+    // getNextHydratableSibling 找到符合需求的兄弟节点
     nextInstance = getNextHydratableSibling(firstAttemptedInstance);
     if (!nextInstance || !tryHydrate(fiber, nextInstance)) {
+      // 当前后两次都没有找到可以复用的hydrate节点 那就停止hydrating
       // Nothing to hydrate. Make it an insertion.
       insertNonHydratedInstance((hydrationParentFiber: any), fiber);
       isHydrating = false;
