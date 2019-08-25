@@ -534,9 +534,11 @@ export function hydrateInstance(
   hostContext: HostContext,
   internalInstanceHandle: Object,
 ): null | Array<mixed> {
+  // 在fiber上挂载 实例
   precacheFiberNode(internalInstanceHandle, instance);
   // TODO: Possibly defer this until the commit phase where all the events
   // get attached.
+  // 实例上挂载 props
   updateFiberProps(instance, props);
   let parentNamespace: string;
   if (__DEV__) {
@@ -545,6 +547,7 @@ export function hydrateInstance(
   } else {
     parentNamespace = ((hostContext: any): HostContextProd);
   }
+  // 对比属性 生成updatePayload 和diffProperties差不多的 会更复杂一些
   return diffHydratedProperties(
     instance,
     type,

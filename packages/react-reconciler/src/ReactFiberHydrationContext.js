@@ -247,6 +247,7 @@ function prepareToHydrateHostInstance(
   }
 
   const instance: Instance = fiber.stateNode;
+  // 有返回一个 updatePayload 复用节点 形成更新
   const updatePayload = hydrateInstance(
     instance,
     fiber.type,
@@ -329,19 +330,26 @@ function popHydrationState(fiber: Fiber): boolean {
   if (!supportsHydration) {
     return false;
   }
+  // 执行了tryToClaimNextHydratableInstance 的fiber hydrationParentFiber 会等于 当前fiber
+  // 相等说明可以复用
+  // 不等说明父节点就不能复用了
   if (fiber !== hydrationParentFiber) {
     // We're deeper than the current hydration context, inside an inserted
     // tree.
     return false;
   }
+  // 说明这个节点不能复用
   if (!isHydrating) {
     // If we're not currently hydrating but we're in a hydration context, then
     // we were an insertion and now need to pop up reenter hydration of our
     // siblings.
+    // 向父链上找到 HostComponent 或HostRoot的节点
     popToNextHostParent(fiber);
     isHydrating = true;
     return false;
   }
+
+  // 下面是可以 复用的情况
 
   const type = fiber.type;
 
@@ -354,15 +362,18 @@ function popHydrationState(fiber: Fiber): boolean {
     fiber.tag !== HostComponent ||
     (type !== 'head' &&
       type !== 'body' &&
-      !shouldSetTextContent(type, fiber.memoizedProps))
+      !shouldSetTextContent(type, fiber.memoizedProps)) // 是否子节点是纯文本
   ) {
+    // 这里是针对hostText 的处理
     let nextInstance = nextHydratableInstance;
+    // 删除所有节点(添加sideEffect)，  在commitRoot 时候处理
     while (nextInstance) {
       deleteHydratableInstance(fiber, nextInstance);
       nextInstance = getNextHydratableSibling(nextInstance);
     }
   }
 
+  // 因为接下去要执行的comleteWork是它parent上的host节点
   popToNextHostParent(fiber);
   nextHydratableInstance = hydrationParentFiber
     ? getNextHydratableSibling(fiber.stateNode)
