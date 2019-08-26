@@ -21,7 +21,7 @@ import invariant from 'shared/invariant';
  *
  * @return {*|array<*>} An accumulation of items.
  */
-
+// 把两个值合并成一个数组， 但是如果其中有一个不存在 直接返回另一个
 function accumulateInto<T>(
   current: ?(Array<T> | T),
   next: T | Array<T>,

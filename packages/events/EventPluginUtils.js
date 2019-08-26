@@ -66,6 +66,7 @@ if (__DEV__) {
  */
 function executeDispatch(event, simulated, listener, inst) {
   const type = event.type || 'unknown-event';
+  // getNodeFromInstance 从 instance 上获取 node节点
   event.currentTarget = getNodeFromInstance(inst);
   invokeGuardedCallbackAndCatchFirstError(type, listener, undefined, event);
   event.currentTarget = null;
@@ -73,8 +74,10 @@ function executeDispatch(event, simulated, listener, inst) {
 
 /**
  * Standard/simple iteration through an event's collected dispatches.
+ * 真正调用事件的地方
  */
 export function executeDispatchesInOrder(event, simulated) {
+  // _dispatchListeners _dispatchInstances 都是事件对象上的数组
   const dispatchListeners = event._dispatchListeners;
   const dispatchInstances = event._dispatchInstances;
   if (__DEV__) {
@@ -82,7 +85,7 @@ export function executeDispatchesInOrder(event, simulated) {
   }
   if (Array.isArray(dispatchListeners)) {
     for (let i = 0; i < dispatchListeners.length; i++) {
-      if (event.isPropagationStopped()) {
+      if (event.isPropagationStopped()) { // 是否停止冒泡
         break;
       }
       // Listeners and Instances are two parallel arrays that are always in sync.

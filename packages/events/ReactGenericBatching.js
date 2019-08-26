@@ -21,6 +21,7 @@ let _batchedUpdatesImpl = function(fn, bookkeeping) {
   return fn(bookkeeping);
 };
 let _interactiveUpdatesImpl = function(fn, a, b) {
+  // 最终这里执行的还是dispatchEvent
   return fn(a, b);
 };
 let _flushInteractiveUpdatesImpl = function() {};
@@ -34,6 +35,7 @@ export function batchedUpdates(fn, bookkeeping) {
   }
   isBatching = true;
   try {
+    // _batchedUpdatesImpl 就是调用 fn(bookkeeping)
     return _batchedUpdatesImpl(fn, bookkeeping);
   } finally {
     // Here we wait until all updates have propagated, which is important
@@ -41,6 +43,9 @@ export function batchedUpdates(fn, bookkeeping) {
     // https://github.com/facebook/react/issues/1698
     // Then we restore state of any controlled component.
     isBatching = false;
+
+    // 下面这段代码 和controlledInput有关， 就是 一个input的value 绑定一个值， 
+    // 但是如果不用 onChange绑定方法处理state  直接输入是不会改变value 这里就是处理相关问题
     const controlledComponentsHavePendingUpdates = needsStateRestore();
     if (controlledComponentsHavePendingUpdates) {
       // If a controlled event was fired, we may need to restore the state of

@@ -84,6 +84,7 @@ export function invokeGuardedCallbackAndCatchFirstError<
   e: E,
   f: F,
 ): void {
+  // 这里要一直 走到 invokeGuardedCallbackImpl 里面的才是真正 调用了 func (listener)
   invokeGuardedCallback.apply(this, arguments);
   if (hasError) {
     const error = clearCaughtError();

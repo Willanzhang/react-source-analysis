@@ -21,8 +21,11 @@ export function precacheFiberNode(hostInst, node) {
 /**
  * Given a DOM node, return the closest ReactDOMComponent or
  * ReactDOMTextComponent instance ancestor.
+ * 通过 一个 dom 节点 返回最近的 HostComponent，HostText  （是个fiber）
  */
 export function getClosestInstanceFromNode(node) {
+  // internalInstanceKey 是在初始化的时候 在 dom节点上通过internalInstanceKey 便是它的fiber节点 在这里便用到了
+  // 判断 node 上面的 internalInstanceKey HostComponent， 或者 HostText 节点，（最近的dom节点）
   if (node[internalInstanceKey]) {
     return node[internalInstanceKey];
   }
@@ -33,6 +36,7 @@ export function getClosestInstanceFromNode(node) {
     } else {
       // Top of the tree. This node must not be part of a React tree (or is
       // unmounted, potentially).
+      // 树的顶端。 此节点不能是React树的一部分  也可能是没挂载
       return null;
     }
   }

@@ -43,6 +43,7 @@ function findRootContainerNode(inst) {
     // This can happen if we're in a detached tree.
     return null;
   }
+  // 一直找到 root节点，render方法接收的第二个参数
   return inst.stateNode.containerInfo;
 }
 
@@ -91,15 +92,21 @@ function handleTopLevel(bookKeeping) {
   // inconsistencies with ReactMount's node cache. See #1105.
   let ancestor = targetInst;
   do {
+    // 如果是不存在 就push 一个null
     if (!ancestor) {
       bookKeeping.ancestors.push(ancestor);
       break;
     }
+    // 如果存在 就找到 这个ancestor 的root render方法接收的第二个参数
     const root = findRootContainerNode(ancestor);
     if (!root) {
+      // 如果root不存在就退出循环
       break;
     }
+    // 存在就 push ancestor
     bookKeeping.ancestors.push(ancestor);
+    // 正常是只会有一个root节点，但可能通过 hack的方式 在一个页面 渲染了两个react app  
+    // 因为事件绑定是通过冒泡绑定到最外层的 dom上的， 所有在这里 执行getClosestInstanceFromNode是要找到 最外层的react 节点
     ancestor = getClosestInstanceFromNode(root);
   } while (ancestor);
 
@@ -180,6 +187,7 @@ export function trapCapturedEvent(
     element,
     getRawEventName(topLevelType),
     // Check if interactive and wrap in interactiveUpdates
+    // topLevelType: onChange
     dispatch.bind(null, topLevelType),
   );
 }
@@ -196,20 +204,24 @@ export function dispatchEvent(
     return;
   }
 
+  // 兼容不同浏览器 的pollfill过程， 返回触发的 target
   const nativeEventTarget = getEventTarget(nativeEvent);
+  // 通过 一个 dom 节点 返回最近的 HostComponent，HostText  （是个fiber）
   let targetInst = getClosestInstanceFromNode(nativeEventTarget);
   if (
     targetInst !== null &&
-    typeof targetInst.tag === 'number' &&
-    !isFiberMounted(targetInst)
+    typeof targetInst.tag === 'number' && // tag 都是用二进制存储的， 通过这个判断是否是一个fiber对象
+    !isFiberMounted(targetInst) // 判断当前 fiber节点对应的dom节点是否已经被挂载了
   ) {
     // If we get an event (ex: img onload) before committing that
     // component's mount, ignore it for now (that is, treat it as if it was an
     // event on a non-React tree). We might also consider queueing events and
     // dispatching them after the mount.
+    // 没被挂载 target 就为null
     targetInst = null;
   }
 
+  // bookKeeping 其实是 一个用来存储变量的对象
   const bookKeeping = getTopLevelCallbackBookKeeping(
     topLevelType,
     nativeEvent,
@@ -219,6 +231,7 @@ export function dispatchEvent(
   try {
     // Event queue being processed in the same cycle allows
     // `preventDefault`.
+    // batchedUpdates 就是执行handleTopLevel(bookKeeping)  和 controlledInput相关的
     batchedUpdates(handleTopLevel, bookKeeping);
   } finally {
     releaseTopLevelCallbackBookKeeping(bookKeeping);

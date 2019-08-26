@@ -32,23 +32,28 @@ const UNMOUNTED = 3;
 
 function isFiberMountedImpl(fiber: Fiber): number {
   let node = fiber;
+  // 假如没有alternate（current） 可能是没有被插入的， 或者即将被插入的
   if (!fiber.alternate) {
     // If there is no alternate, this might be a new tree that isn't inserted
     // yet. If it is, then it will have a pending insertion effect on it.
+    // 假如有Placement 代表即将要被插入的
     if ((node.effectTag & Placement) !== NoEffect) {
       return MOUNTING;
     }
     while (node.return) {
       node = node.return;
+      // 向上找到某一个父节点上也有 Placement
       if ((node.effectTag & Placement) !== NoEffect) {
         return MOUNTING;
       }
     }
   } else {
+    // 假如存在 就向上找，
     while (node.return) {
       node = node.return;
     }
   }
+  // 假如找到的就是 HostRoot 说明以及被挂载了
   if (node.tag === HostRoot) {
     // TODO: Check if this was a nested HostRoot when used with
     // renderContainerIntoSubtree.

@@ -47,6 +47,7 @@ const executeDispatchesAndRelease = function(
   if (event) {
     executeDispatchesInOrder(event, simulated);
 
+    // 和 event 对象相关
     if (!event.isPersistent()) {
       event.constructor.release(event);
     }
@@ -164,6 +165,7 @@ export function getListener(inst: Fiber, registrationName: string) {
  *
  * @return {*} An accumulation of synthetic events.
  * @internal
+ * 通过所有的 plugin 创建 events
  */
 function extractEvents(
   topLevelType: TopLevelType,
@@ -195,6 +197,7 @@ export function runEventsInBatch(
   simulated: boolean,
 ) {
   if (events !== null) {
+    // 把两个值合并成一个数组， 但是如果其中有一个不存在 直接返回另一个
     eventQueue = accumulateInto(eventQueue, events);
   }
 
@@ -207,12 +210,14 @@ export function runEventsInBatch(
     return;
   }
 
+  // simulated 模拟器  正式环境 是false
   if (simulated) {
     forEachAccumulated(
       processingEventQueue,
       executeDispatchesAndReleaseSimulated,
     );
   } else {
+    // 也是工具方法 如果第一个参数是数组，就对数组中没个都执行 cb(第二个参数)， 不是数组的话就直接执行
     forEachAccumulated(
       processingEventQueue,
       executeDispatchesAndReleaseTopLevel,
@@ -233,6 +238,7 @@ export function runExtractedEventsInBatch(
   nativeEvent: AnyNativeEvent,
   nativeEventTarget: EventTarget,
 ) {
+  // 通过所有的 plugin 创建 events
   const events = extractEvents(
     topLevelType,
     targetInst,
