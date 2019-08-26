@@ -83,6 +83,7 @@ export function getParentInstance(inst) {
 /**
  * Simulates the traversal of a two-phase, capture/bubble event dispatch.
  */
+// 在当前节点 父链上找到所有的hostComponent
 export function traverseTwoPhase(inst, fn, arg) {
   const path = [];
   while (inst) {
@@ -90,6 +91,7 @@ export function traverseTwoPhase(inst, fn, arg) {
     inst = getParent(inst);
   }
   let i;
+  // 注意 捕获的过程是从 window 像下 触发的 所有 是 i--
   for (i = path.length; i-- > 0; ) {
     fn(path[i], 'captured', arg);
   }

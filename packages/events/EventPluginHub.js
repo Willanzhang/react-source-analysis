@@ -141,11 +141,13 @@ export function getListener(inst: Fiber, registrationName: string) {
     // Work in progress (ex: onload events in incremental mode).
     return null;
   }
+  // 从dom tree上获取 props
   const props = getFiberCurrentPropsFromNode(stateNode);
   if (!props) {
     // Work in progress.
     return null;
   }
+  // 然后再 prop 看 onChange 属性有没 有就返回
   listener = props[registrationName];
   if (shouldPreventMouseEvent(registrationName, inst.type, props)) {
     return null;
@@ -178,6 +180,7 @@ function extractEvents(
     // Not every plugin in the ordering may be loaded at runtime.
     const possiblePlugin: PluginModule<AnyNativeEvent> = plugins[i];
     if (possiblePlugin) {
+      // 调用每个plugin.extractEvents 方法
       const extractedEvents = possiblePlugin.extractEvents(
         topLevelType,
         targetInst,

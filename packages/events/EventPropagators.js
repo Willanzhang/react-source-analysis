@@ -48,13 +48,18 @@ function accumulateDirectionalDispatches(inst, phase, event) {
   if (__DEV__) {
     warningWithoutStack(inst, 'Dispatching inst must not be null');
   }
+  // 获取lintener  <div onChange=... ></div> 在props 上判断是否有onChange的监听函数等
   const listener = listenerAtPhase(inst, event, phase);
   if (listener) {
+    // 有的话在 event._dispatchListeners上插入 这个listenter
     event._dispatchListeners = accumulateInto(
       event._dispatchListeners,
       listener,
     );
+    // 对应的要把这个节点也放到 event._dispatchInstances 数组中
+    // 让两个数组（_dispatchListeners、_dispatchInstances）中同一个index 相对应的关系
     event._dispatchInstances = accumulateInto(event._dispatchInstances, inst);
+    // 这里就完成了再 event对象上插入 listener（挂载事件）的过程
   }
 }
 
@@ -66,6 +71,7 @@ function accumulateDirectionalDispatches(inst, phase, event) {
  * have a different target.
  */
 function accumulateTwoPhaseDispatchesSingle(event) {
+  // phasedRegistrationNames 比如 change事件 是对应 onChange 还是 onChangeCapture 这两者不同的类型
   if (event && event.dispatchConfig.phasedRegistrationNames) {
     traverseTwoPhase(event._targetInst, accumulateDirectionalDispatches, event);
   }

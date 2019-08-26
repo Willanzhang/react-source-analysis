@@ -32,6 +32,7 @@ function isTextInputElement(elem: ?HTMLElement): boolean {
   const nodeName = elem && elem.nodeName && elem.nodeName.toLowerCase();
 
   if (nodeName === 'input') {
+    // 如果 type在 isTextInputElement 之外的都不属于 textInput
     return !!supportedInputTypes[((elem: any): HTMLInputElement).type];
   }
 

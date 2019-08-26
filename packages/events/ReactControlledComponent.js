@@ -43,6 +43,7 @@ export function setRestoreImplementation(
   restoreImpl = impl;
 }
 
+// 作用 如果setState 后state 对应的input的value 是不一样的 就要将值进行回滚 ？？
 export function enqueueStateRestore(target: EventTarget): void {
   if (restoreTarget) {
     if (restoreQueue) {

@@ -53,6 +53,7 @@ const eventTypes = {
 };
 
 function createAndAccumulateChangeEvent(inst, nativeEvent, target) {
+  // 创建 event  以及在event的原型上添加 preventDefault stopPropagation 等针对react 的处理等
   const event = SyntheticEvent.getPooled(
     eventTypes.change,
     inst,
@@ -61,7 +62,9 @@ function createAndAccumulateChangeEvent(inst, nativeEvent, target) {
   );
   event.type = 'change';
   // Flag this event loop as needing state restore.
+  // 作用 如果setState 后state 对应的input的value 是不一样的 就要将值进行回滚 ？？
   enqueueStateRestore(target);
+  // accumulateTwoPhaseDispatches 是真正从每个节点上获取listener的过程
   accumulateTwoPhaseDispatches(event);
   return event;
 }
@@ -73,6 +76,9 @@ let activeElementInst = null;
 
 /**
  * SECTION: handle `change` event
+ * 判断这个节点上面是否有change Event 和 能否使用 change事件
+ * 因为 react onChange 事件是封装的了很多事件的
+ * 像input type=text 的元素  它输入的时候使用input 事件 而不是 change事件 只有在在输入框 blur 的时候 触发change事件
  */
 function shouldUseChangeEvent(elem) {
   const nodeName = elem.nodeName && elem.nodeName.toLowerCase();
@@ -114,6 +120,7 @@ function getInstIfValueChanged(targetInst) {
 }
 
 function getTargetInstForChangeEvent(topLevelType, targetInst) {
+  // topLevelType === "change"
   if (topLevelType === TOP_CHANGE) {
     return targetInst;
   }
@@ -230,6 +237,7 @@ function getTargetInstForClickEvent(topLevelType, targetInst) {
 }
 
 function getTargetInstForInputOrChangeEvent(topLevelType, targetInst) {
+  // 传进来的 topLevelType 是input 或者 change 都可以
   if (topLevelType === TOP_INPUT || topLevelType === TOP_CHANGE) {
     return getInstIfValueChanged(targetInst);
   }
@@ -272,21 +280,28 @@ const ChangeEventPlugin = {
     const targetNode = targetInst ? getNodeFromInstance(targetInst) : window;
 
     let getTargetInstFunc, handleEventFunc;
+    // shouldUseChangeEvent 是否可以使用change事件的
     if (shouldUseChangeEvent(targetNode)) {
       getTargetInstFunc = getTargetInstForChangeEvent;
-    } else if (isTextInputElement(targetNode)) {
+    } else if (isTextInputElement(targetNode)) { // 是否是textInput 元素
+      // isInputEventSupported 是否支持input 事件 浏览器环境是支持的
       if (isInputEventSupported) {
+        // getTargetInstForInputOrChangeEvent（） 传进来的 topLevelType 是input 或者 change 都可以
         getTargetInstFunc = getTargetInstForInputOrChangeEvent;
       } else {
         getTargetInstFunc = getTargetInstForInputEventPolyfill;
         handleEventFunc = handleEventsForInputEventPolyfill;
       }
-    } else if (shouldUseClickEvent(targetNode)) {
+    } else if (shouldUseClickEvent(targetNode)) { // 对于要使用的 click事件 来触发的节点 checkbox radio
       getTargetInstFunc = getTargetInstForClickEvent;
     }
 
     if (getTargetInstFunc) {
       const inst = getTargetInstFunc(topLevelType, targetInst);
+      // 如果有返回 instance 就可以 创建event了   
+      // 所有的事件触发的过程中 eventPlugin 都会被循环调用的  
+      // 没有 通过不同的事件名称调用不同的plugin这样的设置
+      // 所以这些判断都要放在 plugin 中通过 这些具体事件是什么自己来判断是否要给它创建一个event
       if (inst) {
         const event = createAndAccumulateChangeEvent(
           inst,
