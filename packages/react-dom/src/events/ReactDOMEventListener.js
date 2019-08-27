@@ -179,10 +179,10 @@ export function trapCapturedEvent(
   if (!element) {
     return null;
   }
+  // dispatchEvent 和 dispatchInteractiveEvent 的区别就是 中间是否经历了 interactiveUpdates 这个方法
   const dispatch = isInteractiveTopLevelEventType(topLevelType)
     ? dispatchInteractiveEvent
     : dispatchEvent;
-
   addEventCaptureListener(
     element,
     getRawEventName(topLevelType),
@@ -231,7 +231,7 @@ export function dispatchEvent(
   try {
     // Event queue being processed in the same cycle allows
     // `preventDefault`.
-    // batchedUpdates 就是执行handleTopLevel(bookKeeping)  和 controlledInput相关的
+    // batchedUpdates 就是执行handleTopLevel(bookKeeping)  和 controlled inputs相关的
     batchedUpdates(handleTopLevel, bookKeeping);
   } finally {
     releaseTopLevelCallbackBookKeeping(bookKeeping);

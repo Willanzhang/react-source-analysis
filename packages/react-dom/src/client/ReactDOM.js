@@ -455,6 +455,7 @@ function shouldHydrateDueToLegacyHeuristic(container) {
   );
 }
 
+// DOMRenderer 是来自 ReactFiberScheduler.js 的 三个方法
 ReactGenericBatching.setBatchingImplementation(
   DOMRenderer.batchedUpdates,
   DOMRenderer.interactiveUpdates,

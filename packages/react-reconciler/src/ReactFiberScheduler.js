@@ -2559,6 +2559,8 @@ function interactiveUpdates<A, B, R>(fn: (A, B) => R, a: A, b: B): R {
   }
   const previousIsBatchingInteractiveUpdates = isBatchingInteractiveUpdates;
   const previousIsBatchingUpdates = isBatchingUpdates;
+
+  // 设置了这个两个全局变量 不会 立马就去执行 performWork的 操作
   isBatchingInteractiveUpdates = true;
   isBatchingUpdates = true;
   try {

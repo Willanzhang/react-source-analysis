@@ -23,6 +23,7 @@ let restoreQueue = null;
 function restoreStateOfTarget(target) {
   // We perform this translation at the end of the event loop so that we
   // always receive the correct fiber here
+  // 获取 fiber instance
   const internalInstance = getInstanceFromNode(target);
   if (!internalInstance) {
     // Unmounted
@@ -33,6 +34,7 @@ function restoreStateOfTarget(target) {
     'setRestoreImplementation() needs to be called to handle a target for controlled ' +
       'events. This error is likely caused by a bug in React. Please file an issue.',
   );
+  // 再获取props
   const props = getFiberCurrentPropsFromNode(internalInstance.stateNode);
   restoreImpl(internalInstance.stateNode, internalInstance.type, props);
 }

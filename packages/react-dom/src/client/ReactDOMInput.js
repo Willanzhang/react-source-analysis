@@ -350,6 +350,10 @@ export function postMountWrapper(
 
 export function restoreControlledState(element: Element, props: Object) {
   const node = ((element: any): InputWithWrapperState);
+  // updateWrapper 就是去更新这个值
+  // 通过node.value 设置成 props上的value 值
+  // 在dom节点上手动通过设置 attribute 绑定新的value值
+  // 在执行完所有的事件回调之后， 会进行判断是否需要调用这个方法 来进行 controlled inputs的 value 和props 的value对应关系
   updateWrapper(node, props);
   updateNamedCousins(node, props);
 }
