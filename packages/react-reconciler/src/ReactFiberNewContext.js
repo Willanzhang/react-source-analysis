@@ -319,9 +319,11 @@ export function readContext<T>(
           'rendering, e.g. inside the render method or getDerivedStateFromProps.',
       );
       // This is the first dependency in the list
+      // 这里是 针对 classComponent 它只有一个context 所以只需要定义 主键的 firstContextDependency
       currentlyRenderingFiber.firstContextDependency = lastContextDependency = contextItem;
     } else {
       // Append a new context item.
+      // 但是 使用 Hooks API 的 functionComponent 能使用多个context  所以才对 contextDependency  使用链表结构
       lastContextDependency = lastContextDependency.next = contextItem;
     }
   }
