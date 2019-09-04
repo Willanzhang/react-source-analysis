@@ -1377,6 +1377,7 @@ function renderRoot(
   resetContextDependences();
 
   // Yield back to main thread.
+  // didFatal 是有致命错误的时候
   if (didFatal) {
     const didCompleteRoot = false;
     stopWorkLoopTimer(interruptedBy, didCompleteRoot);
@@ -1389,18 +1390,23 @@ function renderRoot(
     // that we're in the middle of an async render. Set it to null to indicate
     // there's no more work to be done in the current batch.
     nextRoot = null;
+    // onFatal  root.finishedWork = null;  直接清空 finishedWork
     onFatal(root);
     return;
   }
 
-  if (nextUnitOfWork !== null) { // 正常流程走完nextUnitOfWork是等于null的 
+  if (nextUnitOfWork !== null) { // 正常流程走完nextUnitOfWork是等于null的  时间片不够走完 nextUnitOfWork !== null
     // There's still remaining async work in this tree, but we ran out of time
     // in the current frame. Yield back to the renderer. Unless we're
     // interrupted by a higher priority update, we'll continue later from where
     // we left off.
+    // 通过 reactSchdeuler 进行调度，如果 这个root的更新 比较长，
+    // 一个时间片没更新完这个root， 那么中断这次更新
     const didCompleteRoot = false;
     stopWorkLoopTimer(interruptedBy, didCompleteRoot);
     interruptedBy = null;
+    // 没更新完就onYield root  当下次时间片进来的时候， 再次在这个nextUnitOfWork上进行更新
+    // 这个是中断 再继续的流程
     onYield(root);
     return;
   }
@@ -1420,18 +1426,27 @@ function renderRoot(
   // there's no more work to be done in the current batch.
   nextRoot = null;
   interruptedBy = null;
-
+  // nextRenderDidError和 suspend 有关的地方
   if (nextRenderDidError) {
+    // render 是didError了
     // There was an error
     if (hasLowerPriorityWork(root, expirationTime)) {
+      // hasLowerPriorityWork  如果有低优先级的任务还没有被更新
+      // 如果有低优先级的任务 就不提交这次更新， 
+      // 但是 在current 上面的updateQueue是没有被删除的  这些update依然存在
+      // 在下次低优先级的任务执行更新时候 依旧会更新那些update 就有可能修复在这此更新过程中产生的问题
+
+      // 渲染过程中产生 错误 并且有低优先级的任务， 那么不提交这次更新，  而是把提交的更新放在低优先级任务上 再去渲染一次
       // There's lower priority work. If so, it may have the effect of fixing
       // the exception that was just thrown. Exit without committing. This is
       // similar to a suspend, but without a timeout because we're not waiting
       // for a promise to resolve. React will restart at the lower
       // priority level.
+      // markSuspendedPriorityLevel  把当前的更新的任务 给它 suspend 并把这次更新 打上标记
       markSuspendedPriorityLevel(root, expirationTime);
       const suspendedExpirationTime = expirationTime;
       const rootExpirationTime = root.expirationTime;
+      // 什么都没做 也就是在这个 renderRoot 中不提交更新（commit）
       onSuspend(
         root,
         rootWorkInProgress,
@@ -1448,9 +1463,21 @@ function renderRoot(
       !root.didError &&
       !isExpired
     ) {
+      // isExpired 是否超时  
+      // 如果时间片不够了 是不能发起一个同步的更新的
+      // 符合条件 直接发起一个新的同步更新
       root.didError = true;
+      // expirationTime 就是 renderRoot 中的  root.nextExpirationTimeToWorkOn
       const suspendedExpirationTime = (root.nextExpirationTimeToWorkOn = expirationTime);
+      // 走sync的更新 而不走时间片调度更新   
+      // 强制进行同步更新 和渲染的过程
       const rootExpirationTime = (root.expirationTime = Sync);
+      // 传入 -1 还是什么都不做
+      // 在 调用用 renderRoot 的 方法 performWorkOnRoot 再往上的 performWork 中
+      // 知道 在执行完 performWorkOnRoot 后会再寻找 优先级最高 的 更新
+      // 上面 已经 将这个 root的 更新 变为同步， 会再更新这些操作， 
+      // 但是 因为没有执行 commit 所以下次更新 的 root.current 还是当前的 workInProgress  会从老的状态上重新新发起一次更新
+      // 任务挂起就是这样的含义
       onSuspend(
         root,
         rootWorkInProgress,
@@ -1462,6 +1489,7 @@ function renderRoot(
     }
   }
 
+  // nextLatestAbsoluteTimeoutMs !== -1 也会执行一个 onSuspend
   if (!isExpired && nextLatestAbsoluteTimeoutMs !== -1) {
     // The tree was suspended.
     const suspendedExpirationTime = expirationTime;
@@ -1485,6 +1513,7 @@ function renderRoot(
     // to `setTimeout`.
     const currentTimeMs = expirationTimeToMs(requestCurrentTime());
     let msUntilTimeout = nextLatestAbsoluteTimeoutMs - currentTimeMs;
+    // 计算 msUntilTimeout
     msUntilTimeout = msUntilTimeout < 0 ? 0 : msUntilTimeout;
 
     // TODO: Account for the Just Noticeable Difference
@@ -1979,6 +2008,8 @@ function onSuspend(
   msUntilTimeout: number,
 ): void {
   root.expirationTime = rootExpirationTime;
+  // msUntilTimeout：nextRenderDidError的判断中传入的是 -1 因此下面两个判断都不符合
+  // 也就是什么都没做 也就是在这个 renderRoot 中不提交更新
   if (msUntilTimeout === 0 && !shouldYield()) {
     // Don't wait an additional tick. Commit the tree immediately.
     root.pendingCommitExpirationTime = suspendedExpirationTime;
@@ -2246,6 +2277,8 @@ function performWork(minExpirationTime: ExpirationTime, dl: Deadline | null) {
         nextFlushedExpirationTime,
         currentRendererTime >= nextFlushedExpirationTime,
       );
+      // 在执行完performWorkOnRoot 后再找一次优先级最高的 root 
+      // 是根据 expirationTime 的大小判断的
       findHighestPriorityRoot();
       recomputeCurrentRendererTime();
       currentSchedulerTime = currentRendererTime;
