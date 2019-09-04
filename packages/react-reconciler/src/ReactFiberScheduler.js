@@ -1490,9 +1490,11 @@ function renderRoot(
   }
 
   // nextLatestAbsoluteTimeoutMs !== -1 也会执行一个 onSuspend
+  // 这里也是  suspend 的一部分
   if (!isExpired && nextLatestAbsoluteTimeoutMs !== -1) {
     // The tree was suspended.
     const suspendedExpirationTime = expirationTime;
+    // markSuspendedPriorityLevel  把当前的更新的任务 给它 suspend 并把这次更新 打上标记
     markSuspendedPriorityLevel(root, suspendedExpirationTime);
 
     // Find the earliest uncommitted expiration time in the tree, including
@@ -1519,6 +1521,7 @@ function renderRoot(
     // TODO: Account for the Just Noticeable Difference
 
     const rootExpirationTime = root.expirationTime;
+    // 执行 onSuspend
     onSuspend(
       root,
       rootWorkInProgress,
@@ -1856,6 +1859,9 @@ function scheduleWork(fiber: Fiber, expirationTime: ExpirationTime) {
     interruptedBy = fiber; // interruptedBy一个记录的值
     resetStack(); //  中断优先级低的任务
   }
+  // 因为对于调用scheduleWork 的任务都把它 认为是一个pedding的任务
+  // 意思就是等待渲染的任务  这个任务因为没有经过任何的更新， 没有经过 向suspend 这样的流程
+  // 所以它是一个新创建的任务  这就是一个pedding的任务
   markPendingPriorityLevel(root, expirationTime); // 和FiberRoot上 earliestSuspendedTime latestSuspendedTime,等 有关
   if (
     // If we're in the render phase, we don't need to schedule this root
@@ -2011,12 +2017,17 @@ function onSuspend(
   // msUntilTimeout：nextRenderDidError的判断中传入的是 -1 因此下面两个判断都不符合
   // 也就是什么都没做 也就是在这个 renderRoot 中不提交更新
   if (msUntilTimeout === 0 && !shouldYield()) {
+    // !shouldYield() 说明任务还没超时
     // Don't wait an additional tick. Commit the tree immediately.
     root.pendingCommitExpirationTime = suspendedExpirationTime;
+    // 直接设置了 finishedWork 最终会直接调用 commitRoot
     root.finishedWork = finishedWork;
   } else if (msUntilTimeout > 0) {
     // Wait `msUntilTimeout` milliseconds before committing.
+
+    // 在 react-dom 中 scheduleTimeout 是 window.setTimeOut 方法
     root.timeoutHandle = scheduleTimeout(
+      // onTimeout 设置了 finishedWork 然后调flushRoot 强制调用的 commitRoot
       onTimeout.bind(null, root, finishedWork, suspendedExpirationTime),
       msUntilTimeout,
     );
@@ -2027,6 +2038,7 @@ function onYield(root) {
   root.finishedWork = null;
 }
 
+// 设置了 finishedWork 然后调flushRoot 强制调用的 commitRoot
 function onTimeout(root, finishedWork, suspendedExpirationTime) {
   // The root timed out. Commit it.
   root.pendingCommitExpirationTime = suspendedExpirationTime;
@@ -2322,6 +2334,7 @@ function performWork(minExpirationTime: ExpirationTime, dl: Deadline | null) {
   finishRendering();
 }
 
+// 强制更新
 function flushRoot(root: FiberRoot, expirationTime: ExpirationTime) {
   invariant(
     !isRendering,
@@ -2389,7 +2402,7 @@ function performWorkOnRoot(
     let finishedWork = root.finishedWork;
     // 判断是否是有完成了的任务
     if (finishedWork !== null) {
-      // 完成了要及时commit
+      // 完成了要及时commit  completeRoot 最终调用 commitRoot
       // This root is already complete. We can commit it.
       completeRoot(root, finishedWork, expirationTime);
     } else {

@@ -16,6 +16,7 @@ import {NoWork} from './ReactFiberExpirationTime';
 // suspended inside an offscreen subtree should be able to ping at the priority
 // of the outer render.
 
+// earliestPendingTime  latestPendingTime 就是这个root 上面所有需要等待的更新的 优先级的最大级 以及最小级
 export function markPendingPriorityLevel(
   root: FiberRoot,
   expirationTime: ExpirationTime,
@@ -28,9 +29,11 @@ export function markPendingPriorityLevel(
   // Update the latest and earliest pending times
   const earliestPendingTime = root.earliestPendingTime;
   if (earliestPendingTime === NoWork) {
+    // earliestPendingTime === NoWork 代表现在没有等待更新的任务
     // No other pending updates.
     root.earliestPendingTime = root.latestPendingTime = expirationTime;
   } else {
+    // 这里判断 优先级 将 expirationTime 赋值给对应的值
     if (earliestPendingTime > expirationTime) {
       // This is the earliest pending update.
       root.earliestPendingTime = expirationTime;
@@ -38,6 +41,7 @@ export function markPendingPriorityLevel(
       const latestPendingTime = root.latestPendingTime;
       if (latestPendingTime < expirationTime) {
         // This is the latest pending update
+        // 说明这次创建的任务是整个root上优先级最低的任务
         root.latestPendingTime = expirationTime;
       }
     }
