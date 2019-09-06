@@ -152,6 +152,8 @@ export function isPriorityLevelSuspended(
   );
 }
 
+// 处理、清理 fiberRoot 的 pendingTime
+// 以及设置  fiberRoot suspendedTime
 export function markSuspendedPriorityLevel(
   root: FiberRoot,
   suspendedTime: ExpirationTime,
@@ -164,22 +166,27 @@ export function markSuspendedPriorityLevel(
   const latestPendingTime = root.latestPendingTime;
   if (earliestPendingTime === suspendedTime) {
     if (latestPendingTime === suspendedTime) {
+      // 说明只有一个任务正在等待更新 并且这个任务 将要被挂起， 就把所有要等待更新 清空
       // Both known pending levels were suspended. Clear them.
       root.earliestPendingTime = root.latestPendingTime = NoWork;
     } else {
       // The earliest pending level was suspended. Clear by setting it to the
       // latest pending level.
+      // 优先级最高的任务已经被挂起了， 就执行优先级最低的任务
       root.earliestPendingTime = latestPendingTime;
     }
   } else if (latestPendingTime === suspendedTime) {
     // The latest pending level was suspended. Clear by setting it to the
     // latest pending level.
+    // 优先级最低的 pendingTime 任务 被挂起， 这里只是做下清理
     root.latestPendingTime = earliestPendingTime;
   }
 
+  // 接下来就是真正操作 suspendedTime
   // Finally, update the known suspended levels.
   const earliestSuspendedTime = root.earliestSuspendedTime;
   const latestSuspendedTime = root.latestSuspendedTime;
+  // 下面就是设置pendingTime相同 的操作 设置 suspendedTime
   if (earliestSuspendedTime === NoWork) {
     // No other suspended levels.
     root.earliestSuspendedTime = root.latestSuspendedTime = suspendedTime;
@@ -206,9 +213,11 @@ export function markPingedPriorityLevel(
   // is thrown out and not reused during the restarted render. One way to
   // invalidate the progressed work is to restart at expirationTime + 1.
   const latestPingedTime = root.latestPingedTime;
+  // 设置 latestPingedTime 记录了优先级最小的 pingedTime
   if (latestPingedTime === NoWork || latestPingedTime < pingedTime) {
     root.latestPingedTime = pingedTime;
   }
+  // mark 三种 expirtionTime 都会执行 下面这个方法
   findNextExpirationTimeToWorkOn(pingedTime, root);
 }
 
@@ -265,13 +274,14 @@ function findNextExpirationTimeToWorkOn(completedExpirationTime, root) {
 
   // Work on the earliest pending time. Failing that, work on the latest
   // pinged time.
+  // 如果 root 上没有任何正在等待的更新   nextExpirationTimeToWorkOn 就等于 latestPingedTime
   let nextExpirationTimeToWorkOn =
     earliestPendingTime !== NoWork ? earliestPendingTime : latestPingedTime;
 
   // If there is no pending or pinged work, check if there's suspended work
   // that's lower priority than what we just completed.
   if (
-    nextExpirationTimeToWorkOn === NoWork &&
+    nextExpirationTimeToWorkOn === NoWork && // 即 earliestPendingTime 和 latestPingedTime 都是 noWork
     (completedExpirationTime === NoWork ||
       latestSuspendedTime > completedExpirationTime)
   ) {
@@ -288,9 +298,12 @@ function findNextExpirationTimeToWorkOn(completedExpirationTime, root) {
     earliestSuspendedTime < expirationTime
   ) {
     // Expire using the earliest known expiration time.
+    // SuspendedTime 的时候 expirationTime 会设置为 earliestSuspendedTime
+    // 寻找被挂起的任务中优先级最高的 expirationTime
     expirationTime = earliestSuspendedTime;
   }
-
+  // expirationTime   寻找 被挂起的任务中优先级最高的 expirationTime
+  // root.nextExpirationTimeToWorkOn 寻找 latestSuspendedTime
   root.nextExpirationTimeToWorkOn = nextExpirationTimeToWorkOn;
   root.expirationTime = expirationTime;
 }
