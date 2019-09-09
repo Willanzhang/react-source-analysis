@@ -1609,11 +1609,13 @@ function bailoutOnAlreadyFinishedWork(
 }
 
 // 会返回子节点fiber或者null
+// renderExpirationTime 非常重要的作用就是比较当前节点 是否有任务在 这次渲染周期内被执行
 function beginWork(
   current: Fiber | null,
   workInProgress: Fiber,
-  renderExpirationTime: ExpirationTime,
+  renderExpirationTime: ExpirationTime, // root.nextExpirationTimeToWorkOn
 ): Fiber | null {
+  // 这里获取了每个节点的expirationTime（优先级最高的）
   const updateExpirationTime = workInProgress.expirationTime;
   // 只有react第一次更新的时候current是 RootFiber 仅且只有此时RootFiber上才会有expirationTime 并且之后任何时候的更新都不是RootFiber上的 
   // 后面的跟新所在等层级 做多也只能是到app 节点这一层
@@ -1626,6 +1628,8 @@ function beginWork(
       !hasLegacyContextChanged() && // 老的context判断 一个很影响性能的api
       (updateExpirationTime === NoWork || // 这个节点没有更新 
         updateExpirationTime > renderExpirationTime) // 更新的优先级不高不在这次渲染执行
+        // 用当前节点优先级最高的节点 和 renderExpirationTime （root.nextExpirationTimeToWorkOn） 比较， 
+        // 要是优先级小于 renderExpirationTime 说明这个节点的任务（更新）在这次更新中是可以被跳过的
     ) {
       // 这个fiber节点没有更新并且优先级不高 可以在本次渲染跳过
       // This fiber does not have any pending work. Bailout without entering

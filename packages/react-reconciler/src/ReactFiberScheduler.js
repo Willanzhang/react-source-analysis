@@ -1234,11 +1234,11 @@ function renderRoot(
     root !== nextRoot ||
     nextUnitOfWork === null
   ) {
-    // 接受到root 和 和即将（之前）要执行的root一样 可能是之前的异步任务 被刚接受到的高优先级任务打断
+    // 接受到root 和 即将（之前）要执行的root一样 可能是之前的异步任务 被刚接受到的高优先级任务打断
     // Reset the stack and start working from the root.
     resetStack();
     nextRoot = root;
-    nextRenderExpirationTime = expirationTime;
+    nextRenderExpirationTime = expirationTime; // nextRenderExpirationTime 是一个公共变量 就会在其他地方使用
     nextUnitOfWork = createWorkInProgress(
       nextRoot.current,
       null,
@@ -2382,7 +2382,7 @@ function finishRendering() {
 function performWorkOnRoot(
   root: FiberRoot,
   expirationTime: ExpirationTime,
-  isExpired: boolean,
+  isExpired: boolean, // 是否过期， 超时， 对于异步的任务如果超时，就会当做同步的任务执行， 而对于同步更新的直接当做是一个超时的任务即可
 ) {
   invariant(
     !isRendering,
