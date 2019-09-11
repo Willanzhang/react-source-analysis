@@ -154,7 +154,7 @@ function throwException(
   // Its effect list is no longer valid.
   sourceFiber.firstEffect = sourceFiber.lastEffect = null;
 
-  if ( // 和 supense 相关的代码 暂时不看
+  if ( // 和 suspense 相关的代码 要看了
     value !== null &&
     typeof value === 'object' &&
     typeof value.then === 'function'
@@ -172,9 +172,11 @@ function throwException(
     let startTimeMs = -1;
     do {
       if (workInProgress.tag === SuspenseComponent) {
+        // 向上寻找所有 suspenseComponent
         const current = workInProgress.alternate;
         if (current !== null) {
           const currentState: SuspenseState | null = current.memoizedState;
+          // 如果是第一次渲染 currentState = null 不会走下面这个判断
           if (currentState !== null && currentState.didTimeout) {
             // Reached a boundary that already timed out. Do not search
             // any further.
@@ -185,12 +187,13 @@ function throwException(
           }
         }
         let timeoutPropMs = workInProgress.pendingProps.maxDuration;
+        // 通过传入的props 对 earliestTimeoutMs 进行赋值
         if (typeof timeoutPropMs === 'number') {
           if (timeoutPropMs <= 0) {
             earliestTimeoutMs = 0;
           } else if (
             earliestTimeoutMs === -1 ||
-            timeoutPropMs < earliestTimeoutMs
+            timeoutPropMs < earliestTimeoutMs // 因为 suspense组件也是可以存在嵌套的 向上找到 maxDuration 最小的那个值
           ) {
             earliestTimeoutMs = timeoutPropMs;
           }
@@ -202,20 +205,23 @@ function throwException(
     // Schedule the nearest Suspense to re-render the timed out view.
     workInProgress = returnFiber;
     do {
+      // 再进行一次循环
+      // 寻找 suspenseComponent 并且是 shouldCaptureSuspense
       if (
         workInProgress.tag === SuspenseComponent &&
-        shouldCaptureSuspense(workInProgress.alternate, workInProgress)
+        shouldCaptureSuspense(workInProgress.alternate, workInProgress) // 现在 nextState = null 知道是 true
       ) {
         // Found the nearest boundary.
 
         // If the boundary is not in concurrent mode, we should not suspend, and
         // likewise, when the promise resolves, we should ping synchronously.
         const pingTime =
-          (workInProgress.mode & ConcurrentMode) === NoEffect
+          (workInProgress.mode & ConcurrentMode) === NoEffect // 当前是否处于 concurrentMode 是的话就是 renderExpirationTime 不属于concurrentMode 就是sync
             ? Sync
             : renderExpirationTime;
 
         // Attach a listener to the promise to "ping" the root and retry.
+        // onResolveOrReject 是后面 promise resolve 之后会调用的那个方法
         let onResolveOrReject = retrySuspendedRoot.bind(
           null,
           root,
@@ -226,6 +232,7 @@ function throwException(
         if (enableSchedulerTracing) {
           onResolveOrReject = Schedule_tracing_wrap(onResolveOrReject);
         }
+        // resolve 和 reject 都会调用这两种方法
         thenable.then(onResolveOrReject, onResolveOrReject);
 
         // If the boundary is outside of concurrent mode, we should *not*
@@ -236,13 +243,16 @@ function throwException(
         // Note: It doesn't matter whether the component that suspended was
         // inside a concurrent mode tree. If the Suspense is outside of it, we
         // should *not* suspend the commit.
+        // 如果不处于 ConcurrentMode 会执行这个 if 的内容
         if ((workInProgress.mode & ConcurrentMode) === NoEffect) {
+          // 会在 effectTag 增加 一个 CallbackEffect
           workInProgress.effectTag |= CallbackEffect;
 
           // Unmount the source fiber's children
           const nextChildren = null;
+          // 调和子节点
           reconcileChildren(
-            sourceFiber.alternate,
+            sourceFiber.alternate, // 这里用的是 sourceFiber  不是workInProgress（也就不是suspense 组件）  而是 throw 那个promise 的组件 这里把它渲染成null
             sourceFiber,
             nextChildren,
             renderExpirationTime,
@@ -250,9 +260,11 @@ function throwException(
           sourceFiber.effectTag &= ~Incomplete;
 
           if (sourceFiber.tag === ClassComponent) {
+            // 如果是 ClassComponent 组件
             // We're going to commit this fiber even though it didn't complete.
             // But we shouldn't call any lifecycle methods or callbacks. Remove
             // all lifecycle effect tags.
+            // 把生命周期相关的 effect 全部去掉（变成0再&不可能还存在）
             sourceFiber.effectTag &= ~LifecycleEffectMask;
             const current = sourceFiber.alternate;
             if (current === null) {
@@ -264,6 +276,12 @@ function throwException(
           }
 
           // Exit without suspending.
+          // 如果是同步sync模式下 设置这些内容就直接 return 了
+          // 去看 unwindWork 执行suspenseComponent 这个组件是没有带 shouldCapture的   
+          // unwindWork 中会return null  ---> completeUnitOfWork 的时候 next = null 就不会对这个组件再次进行beginWork的操作  
+          // 也就是这个组件 和它的 subtree 已经渲染完了 那么整棵树 就等着提交就可以了
+          // 因为 throw 的是 promisse 也就不会进入 nextDidError 错误处理里面
+          // 就直接进入 到commit 阶段， 在commit 里面会对 suspenseComponent 进行 特殊的操作
           return;
         }
 

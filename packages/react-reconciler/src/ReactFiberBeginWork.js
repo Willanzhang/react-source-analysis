@@ -1181,6 +1181,7 @@ function updateSuspenseComponent(
 
   // We should attempt to render the primary children unless this boundary
   // already suspended during this render (`alreadyCaptured` is true).
+  // 刚开始 suspense 组件的 state 是 null 
   let nextState: SuspenseState | null = workInProgress.memoizedState;
   if (nextState === null) {
     // An empty suspense state means this boundary has not yet timed out.
@@ -1194,9 +1195,10 @@ function updateSuspenseComponent(
       // rendering the fallback children. Set `alreadyCaptured` to true.
       if (current !== null && nextState === current.memoizedState) {
         // Create a new suspense state to avoid mutating the current tree's.
+        // 第二次是会进入这里
         nextState = {
           alreadyCaptured: true,
-          didTimeout: true,
+          didTimeout: true, // 修改了didTimeout
           timedOutAt: nextState.timedOutAt,
         };
       } else {
@@ -1206,7 +1208,7 @@ function updateSuspenseComponent(
       }
     }
   }
-  const nextDidTimeout = nextState !== null && nextState.didTimeout;
+  const nextDidTimeout = nextState !== null && nextState.didTimeout; // true
 
   // This next part is a bit confusing. If the children timeout, we switch to
   // showing the fallback children in place of the "primary" children.
@@ -1336,19 +1338,25 @@ function updateSuspenseComponent(
       if (nextDidTimeout) {
         // Timed out. Wrap the children in a fragment fiber to keep them
         // separate from the fallback children.
+        // 这就是我们设置在 suspense 组件上的fallback
         const nextFallbackChildren = nextProps.fallback;
+        // 创建了 一个 fragment fiber
         const primaryChildFragment = createFiberFromFragment(
           // It shouldn't matter what the pending props are because we aren't
           // going to render this fragment.
-          null,
+          null, //
           mode,
-          NoWork,
+          NoWork, //
           null,
         );
         primaryChildFragment.effectTag |= Placement;
+        // 设置这个 fragment fiber的 child 是之前渲染的了的 current.child
+        // 通过这样 建立一个 fragment 组件为 suspenseComponent 的 child
+        // 也是为了保存 原先 渲染过的组件的状态， 将它保存在 primaryChildFragment 上
         primaryChildFragment.child = currentPrimaryChild;
         currentPrimaryChild.return = primaryChildFragment;
         // Create a fragment from the fallback children, too.
+        // 也要创建 fallbackChildFragment
         const fallbackChildFragment = (primaryChildFragment.sibling = createFiberFromFragment(
           nextFallbackChildren,
           mode,
@@ -1361,6 +1369,10 @@ function updateSuspenseComponent(
         // Skip the primary children, and continue working on the
         // fallback children.
         next = fallbackChildFragment;
+        // child next 都是当前 suspenseComponent 的 子节点
+        // 这是渲染fallback 的过程   但是发现这里的连个 fragment 都是有Placement 都处于显示的过程
+        // 并且并没有任何的保存 最后会走到 commitRoot 中!~
+
         child.return = next.return = workInProgress;
       } else {
         // Still haven't timed out.  Continue rendering the children, like we

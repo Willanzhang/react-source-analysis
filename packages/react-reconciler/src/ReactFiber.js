@@ -557,7 +557,7 @@ export function createFiberFromElement(
 
 // 产生一个Fragment的fiber对象
 export function createFiberFromFragment(
-  elements: ReactFragment,
+  elements: ReactFragment, // children
   mode: TypeOfMode,
   expirationTime: ExpirationTime,
   key: null | string,

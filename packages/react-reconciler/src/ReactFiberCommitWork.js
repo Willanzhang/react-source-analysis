@@ -362,6 +362,8 @@ function commitLifeCycles(
     }
     case SuspenseComponent: {
       if (finishedWork.effectTag & Callback) {
+        // 前面在 throwException 中有看到在 同步模式下 我们有给他设置 CllbackEffect
+        // 可以知道 同步的时候 进入commit 是执行了这部分的代码
         // In non-strict mode, a suspense boundary times out by commiting
         // twice: first, by committing the children in an inconsistent state,
         // then hiding them and showing the fallback children in a subsequent
@@ -371,7 +373,10 @@ function commitLifeCycles(
           didTimeout: false,
           timedOutAt: NoWork,
         };
+        // 给这个 suspenseComponent 设置  memoizedState 为新的state 
         finishedWork.memoizedState = newState;
+        // 发起一次新的渲染 并且是同步的更新
+        // 会又去调用 updateSuspenseComponent
         scheduleWork(finishedWork, Sync);
         return;
       }
@@ -393,12 +398,15 @@ function commitLifeCycles(
             // If the children had not already timed out, record the time.
             // This is used to compute the elapsed time during subsequent
             // attempts to render the children.
+            // 设置了当前的 currentTime
             newState.timedOutAt = requestCurrentTime();
           }
         }
       }
-
+      // oldDidTimeout = true 说明上一次已经执行隐藏了， 这次就不需要再执行了
       if (newDidTimeout !== oldDidTimeout && primaryChildParent !== null) {
+        // hideOrUnhideAllChildren 中 newDidTimeout = true 时候 是要 把真正的子节点隐藏掉的
+        // 因为此时是渲染的 fallback节点
         hideOrUnhideAllChildren(primaryChildParent, newDidTimeout);
       }
       return;

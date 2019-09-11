@@ -36,5 +36,6 @@ export function shouldCaptureSuspense(
   // If it was the primary children that just suspended, capture and render the
   // fallback. Otherwise, don't capture and bubble to the next boundary.
   const nextState: SuspenseState | null = workInProgress.memoizedState;
+  // nextState.didTimeout 是 false  也返回true
   return nextState === null || !nextState.didTimeout;
 }
