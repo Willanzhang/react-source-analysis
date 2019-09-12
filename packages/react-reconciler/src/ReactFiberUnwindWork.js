@@ -243,6 +243,7 @@ function throwException(
         // Note: It doesn't matter whether the component that suspended was
         // inside a concurrent mode tree. If the Suspense is outside of it, we
         // should *not* suspend the commit.
+        
         // 如果不处于 ConcurrentMode 会执行这个 if 的内容
         if ((workInProgress.mode & ConcurrentMode) === NoEffect) {
           // 会在 effectTag 增加 一个 CallbackEffect

@@ -1208,7 +1208,7 @@ function updateSuspenseComponent(
       }
     }
   }
-  const nextDidTimeout = nextState !== null && nextState.didTimeout; // true
+  const nextDidTimeout = nextState !== null && nextState.didTimeout; // 第二次是true
 
   // This next part is a bit confusing. If the children timeout, we switch to
   // showing the fallback children in place of the "primary" children.
