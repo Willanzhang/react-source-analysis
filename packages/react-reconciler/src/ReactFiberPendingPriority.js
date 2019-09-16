@@ -139,6 +139,7 @@ export function hasLowerPriorityWork(
   );
 }
 
+// 判断 promise resolve 的 expirationTime 是否还处于  root 的  suspensedTime 的区间之内
 export function isPriorityLevelSuspended(
   root: FiberRoot,
   expirationTime: ExpirationTime,

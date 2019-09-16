@@ -222,6 +222,7 @@ function throwException(
 
         // Attach a listener to the promise to "ping" the root and retry.
         // onResolveOrReject 是后面 promise resolve 之后会调用的那个方法
+        // retrySuspendedRoot  真实作用就是重新发起一次更新
         let onResolveOrReject = retrySuspendedRoot.bind(
           null,
           root,

@@ -1684,6 +1684,7 @@ function renderDidError() {
   nextRenderDidError = true;
 }
 
+// 真实作用就是重新发起一次更新
 function retrySuspendedRoot(
   root: FiberRoot,
   boundaryFiber: Fiber,
@@ -1692,15 +1693,20 @@ function retrySuspendedRoot(
 ) {
   let retryTime;
 
+  // 下面这个块其实就是设置 retryTime 的过程
+
+  // isPriorityLevelSuspended 判断 promise resolve 的 expirationTime 是否还处于  root 的  suspensedTime 的区间之内
   if (isPriorityLevelSuspended(root, suspendedTime)) {
     // Ping at the original level
     retryTime = suspendedTime;
 
     markPingedPriorityLevel(root, retryTime);
   } else {
+    // suspenseTime 超时， 就重新计算一个时间
     // Suspense already timed out. Compute a new expiration time
     const currentTime = requestCurrentTime();
     retryTime = computeExpirationForFiber(currentTime, boundaryFiber);
+    // 这里是作为 pendingTime
     markPendingPriorityLevel(root, retryTime);
   }
 
@@ -1711,15 +1717,18 @@ function retrySuspendedRoot(
   // and on update; we attach two .then(retrySuspendedRoot) callbacks and each
   // one performs Sync work, rerendering the Suspense.
 
+  // 如果是处于 ConcurrentMode 下面
   if ((boundaryFiber.mode & ConcurrentMode) !== NoContext) {
     if (root === nextRoot && nextRenderExpirationTime === suspendedTime) {
       // Received a ping at the same priority level at which we're currently
       // rendering. Restart from the root.
+      // 重启root 渲染
       nextRoot = null;
     }
   }
 
   scheduleWorkToRoot(boundaryFiber, retryTime);
+  // 不处于 ConcurrentMode 下的处理
   if ((boundaryFiber.mode & ConcurrentMode) === NoContext) {
     // Outside of concurrent mode, we must schedule an update on the source
     // fiber, too, since it already committed in an inconsistent state and
@@ -1730,7 +1739,9 @@ function retrySuspendedRoot(
       // When we try rendering again, we should not reuse the current fiber,
       // since it's known to be in an inconsistent state. Use a force updte to
       // prevent a bail out.
+      // 添加一个 sideEffect  ForceUpdate
       const update = createUpdate(retryTime);
+      // update 的tag 是 ForceUpdate 要同步渲染  避免阐释 bail out(退出放弃)
       update.tag = ForceUpdate;
       enqueueUpdate(sourceFiber, update);
     }
@@ -1738,6 +1749,7 @@ function retrySuspendedRoot(
 
   const rootExpirationTime = root.expirationTime;
   if (rootExpirationTime !== NoWork) {
+    // 再发起更新渲染流程
     requestWork(root, rootExpirationTime);
   }
 }
