@@ -721,6 +721,7 @@ function completeWork(
       if (nextDidTimeout !== prevDidTimeout) {
         // If this render commits, and it switches between the normal state
         // and the timed-out state, schedule an effect.
+        // 是在这里 给 SuspenseComponent 添加了update sideEffect
         workInProgress.effectTag |= Update;
       }
       break;
