@@ -1494,7 +1494,7 @@ function renderRoot(
   if (!isExpired && nextLatestAbsoluteTimeoutMs !== -1) {
     // The tree was suspended.
     const suspendedExpirationTime = expirationTime;
-    // markSuspendedPriorityLevel  把当前的更新的任务 给它 suspend 并把这次更新 打上标记
+    // markSuspendedPriorityLevel  把当前的更新的任务 给它 suspend 并把这次更新 打上标记 将任务挂起
     markSuspendedPriorityLevel(root, suspendedExpirationTime);
 
     // Find the earliest uncommitted expiration time in the tree, including
@@ -1504,8 +1504,10 @@ function renderRoot(
       root,
       expirationTime,
     );
+    // 获取这个 root 中所有更新 优先级最高的那个
     const earliestExpirationTimeMs = expirationTimeToMs(earliestExpirationTime);
     if (earliestExpirationTimeMs < nextLatestAbsoluteTimeoutMs) {
+      // 如果 在 最新的更新前 还没执行 timeout 就让它 在这个更新的时候执行掉
       nextLatestAbsoluteTimeoutMs = earliestExpirationTimeMs;
     }
 
@@ -2027,7 +2029,7 @@ function onSuspend(
 
     // 在 react-dom 中 scheduleTimeout 是 window.setTimeOut 方法
     root.timeoutHandle = scheduleTimeout(
-      // onTimeout 设置了 finishedWork 然后调flushRoot 强制调用的 commitRoot
+      // onTimeout 设置了 finishedWork 然后调flushRoot 强制调用的 commitRoot 强制更新
       onTimeout.bind(null, root, finishedWork, suspendedExpirationTime),
       msUntilTimeout,
     );

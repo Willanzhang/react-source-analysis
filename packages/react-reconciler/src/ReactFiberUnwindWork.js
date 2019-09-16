@@ -243,7 +243,7 @@ function throwException(
         // Note: It doesn't matter whether the component that suspended was
         // inside a concurrent mode tree. If the Suspense is outside of it, we
         // should *not* suspend the commit.
-        
+
         // 如果不处于 ConcurrentMode 会执行这个 if 的内容
         if ((workInProgress.mode & ConcurrentMode) === NoEffect) {
           // 会在 effectTag 增加 一个 CallbackEffect
@@ -291,6 +291,7 @@ function throwException(
 
         let absoluteTimeoutMs;
         if (earliestTimeoutMs === -1) {
+          // 刚开始 是 -1  看 suspense 的 maxDuration 属性的值  看是否有个有效的值  默认是 -1
           // If no explicit threshold is given, default to an abitrarily large
           // value. The actual size doesn't matter because the threshold for the
           // whole tree will be clamped to the expiration time.
@@ -306,6 +307,8 @@ function throwException(
             // This will cause high priority (interactive) work to expire
             // earlier than necessary, but we can account for this by adjusting
             // for the Just Noticeable Difference.
+            // 传入当前去渲染的 exprationTime 和 earliestPendingTime  earliestSuspendedTime 进行对比， 
+            // 找得到其中最小的非 NoWork 的值
             const earliestExpirationTime = findEarliestOutstandingPriorityLevel(
               root,
               renderExpirationTime,
@@ -313,8 +316,10 @@ function throwException(
             const earliestExpirationTimeMs = expirationTimeToMs(
               earliestExpirationTime,
             );
+            // 和exprationTime的计算有关 粗略反推出 一个ms
             startTimeMs = earliestExpirationTimeMs - LOW_PRIORITY_EXPIRATION;
           }
+          // 这里是就 开始的时间 startTimeMs  加上我们设置的durationTime时间 就是真正 的tiemOut的时间
           absoluteTimeoutMs = startTimeMs + earliestTimeoutMs;
         }
 
@@ -324,7 +329,10 @@ function throwException(
         // whole tree.
         renderDidSuspend(root, absoluteTimeoutMs, renderExpirationTime);
 
+        // 这个 workInProgress 就是我们当前 suspense 组件
+        // 因为这里增加 ShouldCapture 我们会在unwindWork的时候会对它进行处理
         workInProgress.effectTag |= ShouldCapture;
+        // 并把 suspense 的 expiration 设置为当前的 渲染时间
         workInProgress.expirationTime = renderExpirationTime;
         return;
       }
@@ -442,11 +450,14 @@ function unwindWork(
     }
     case SuspenseComponent: {
       const effectTag = workInProgress.effectTag;
+      // 处理带 ShouldCature 的 SuspenseComponent 组件
       if (effectTag & ShouldCapture) {
+        // 这里已经进入到 unwindWork 里面了 这里把它转化为 DidCapture 
         workInProgress.effectTag = (effectTag & ~ShouldCapture) | DidCapture;
         // Captured a suspense effect. Set the boundary's `alreadyCaptured`
         // state to true so we know to render the fallback.
         const current = workInProgress.alternate;
+        // 更新 state
         const currentState: SuspenseState | null =
           current !== null ? current.memoizedState : null;
         let nextState: SuspenseState | null = workInProgress.memoizedState;
@@ -469,8 +480,10 @@ function unwindWork(
           // Already have a clone, so it's safe to mutate.
           nextState.alreadyCaptured = true;
         }
+        // 经过这里设置的 state 它的 alreadyCatured 都等于 true
         workInProgress.memoizedState = nextState;
         // Re-render the boundary.
+        // 对应到 ReactFiberScheduler.js 的  completeUnitOfWork  next 返回的就是这个 workInprogress
         return workInProgress;
       }
       return null;

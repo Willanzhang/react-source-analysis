@@ -230,6 +230,8 @@ function clearPing(root, completedTime) {
   }
 }
 
+// 传入当前去渲染的 exprationTime 和 earliestPendingTime  earliestSuspendedTime 进行对比， 
+// 找得到其中最小的非 NoWork 的值
 export function findEarliestOutstandingPriorityLevel(
   root: FiberRoot,
   renderExpirationTime: ExpirationTime,
